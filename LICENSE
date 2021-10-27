@@ -1,6 +1,10 @@
 MIT License
 
+<<<<<<< HEAD
 Copyright (c) 2021 Alexandre Bergel <alexandre.bergel@me.com> and contributors
+=======
+Copyright (c) 2021 Alexandre Bergel
+>>>>>>> badfa272da22f84fd4c650ca4975af7f47c0d588
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
