@@ -3,6 +3,9 @@ uuid = "5c622eaa-d7fb-4330-9e95-5d9c17cee8d6"
 authors = ["Alexandre Bergel <alexandre.bergel@me.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+StaticLint = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
+
 [compat]
 julia = "1"
 
