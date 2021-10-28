@@ -7,6 +7,7 @@ version = "0.1.0"
 StaticLint = "b3cc710f-9c33-5bdb-a03d-a94903873e97"
 
 [compat]
+StaticLint = "8"
 julia = "1"
 
 [extras]
