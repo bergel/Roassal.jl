@@ -1,6 +1,6 @@
 using Roassal
 using Test
-
+# ------------------------------------
 function testColor()
     aColor = RColor()
     @test aColor.r == aColor.g
@@ -33,9 +33,35 @@ function testCanvas()
     @test numberOfShapes(canvas) == 2
 end
 
+# ------------------------------------
+function testFetchingShape()
+    canvas = RCanvas()
+    box = RBox()
+    add!(canvas, box)
+    translateTo!(box, 50, 50)
+    @test pos(box) == (50, 50)
+
+    #@test isPositionWithinEncompassingRectangleOf(box, 50, 50)
+    #@test !isPositionWithinEncompassingRectangleOf(box, -50, 50)
+    #@test !isPositionWithinEncompassingRectangleOf(box, -50, -50)
+
+    @test getShapeAtPosition(canvas, 50, 50) === box
+    @test getShapeAtPosition(canvas, 50, 50) == box
+    @test getShapeAtPosition(canvas, -50, -50) == canvas
+    @test getShapeAtPosition(canvas, -50, -50) === canvas
+end
+
+function testCallbacks()
+    box = RBox()
+    @test numberOfCallbacks(box) == 0
+end
+
+# ------------------------------------
 @testset "Roassal.jl" begin
     testColor()
     testBox01()
     testBox02()
     testCanvas()
+    testFetchingShape()
+    testCallbacks()
 end
