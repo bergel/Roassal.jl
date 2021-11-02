@@ -54,6 +54,8 @@ end
 function testCallbacks()
     box = RBox()
     @test numberOfCallbacks(box) == 0
+    addCallback!(box, Callback(:mouseMove, (event, shape) -> println("enter box")))
+    @test numberOfCallbacks(box) == 1
 end
 
 # ------------------------------------

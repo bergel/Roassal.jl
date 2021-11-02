@@ -18,7 +18,7 @@ export rendererVisitor
 export getShapeAtPosition
 
 export Callback
-export numberOfCallbacks
+export numberOfCallbacks, addCallback!
 
 # ------------------------------------
 """
@@ -179,11 +179,11 @@ end
 Callbacks
 """
 mutable struct Callback
-    name::String
+    name::Symbol
     f
 end
 
-function addCallback(shape::Shape, callback::Callback)
+function addCallback!(shape::Shape, callback::Callback)
     push!(shape.callbacks, callback)
 end
 
