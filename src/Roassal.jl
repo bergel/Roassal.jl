@@ -13,12 +13,14 @@ export RBox
 export RColor
 
 export RCanvas
-export numberOfShapes, add!, rshow
+export numberOfShapes, add!, removeShape!, rshow
 export rendererVisitor
 export getShapeAtPosition
+export offsetFromCanvasToScreen, offsetFromScreenToCanvas
+export shapesOf
 
 export Callback
-export numberOfCallbacks, addCallback!
+export numberOfCallbacks, addCallback!, triggerCallback
 
 # ------------------------------------
 """
@@ -81,15 +83,13 @@ Canvas
 """
 mutable struct RCanvas
     shapes::Array{Shape}
+    callbacks
 end
-RCanvas() = RCanvas([])
+RCanvas() = RCanvas([], [])
 
-# ------------------------------------
-"""
-Operation on a canvas
-"""
 numberOfShapes(c::RCanvas) = length(c.shapes)
 add!(c::RCanvas, s::Shape) = push!(c.shapes, s)
+shapesOf(c::RCanvas) = c.shapes
 
 function TODELETEshow(canvas::RCanvas)
     c = @GtkCanvas()
@@ -109,30 +109,56 @@ function TODELETEshow(canvas::RCanvas)
     end
     show(c)
 end
-function rshow(canvas::RCanvas)
-    c = @GtkCanvas()
-    win = GtkWindow(c, "Roassal")
+
+function redraw(canvas::RCanvas, c::GtkCanvas)
     @guarded draw(c) do widget
         h = height(c)
         w = width(c)
+        ctx = getgc(c)
+        rectangle(ctx, 0, 0, w, h)
+        set_source_rgb(ctx, 0.2, 0.2, 0.2)
+        fill(ctx)
+
         rendererVisitor(canvas, c)
     end
+end
+
+function rshow(canvas::RCanvas)
+    c = @GtkCanvas()
+    win = GtkWindow(c, "Roassal")
+    redraw(canvas, c)
 
     signal_connect(win, "key-press-event") do widget, event
         println("You pressed key ", event.keyval)
     end
 
     c.mouse.motion = @guarded (widget, event) -> begin
-        println("($(event.x), $(event.y))")
+        offset = offsetFromScreenToCanvas(c)
+        shapeOrCanvas = getShapeAtPosition(canvas, event.x + offset[1], event.y + offset[2])
+        # print("($(event.x), $(event.y)) -> ")
+        # println(typeof(shapeOrCanvas))
+        triggerCallback(shapeOrCanvas, :mouseMove, event)
 
+        #Probably triggerCallback should indicates whether there has been some trigger.
+        redraw(canvas, c)
+        reveal(widget)
+        #println("refresh!!")
     end
 
     c.mouse.button1press = @guarded (widget, event) -> begin
-        ctx = getgc(widget)
-        set_source_rgb(ctx, 0, 1, 0)
-        arc(ctx, event.x, event.y, 5, 0, 2pi)
-        stroke(ctx)
+        # ctx = getgc(widget)
+        # set_source_rgb(ctx, 0, 1, 0)
+        # arc(ctx, event.x, event.y, 5, 0, 2pi)
+        # stroke(ctx)
+        #reveal(widget)
+        offset = offsetFromScreenToCanvas(c)
+        shapeOrCanvas = getShapeAtPosition(canvas, event.x + offset[1], event.y + offset[2])
+        triggerCallback(shapeOrCanvas, :mouseClick, event)
+
+        #Probably triggerCallback should indicates whether there has been some trigger.
+        redraw(canvas, c)
         reveal(widget)
+        #println("refresh!!")
     end
 
     show(c)
@@ -148,6 +174,9 @@ function getShapeAtPosition(canvas::RCanvas, x::Number, y::Number)
     return canvas
 end
 
+function removeShape!(canvas::RCanvas, shape::Shape)
+    deleteat!(canvas.shapes, findall(s -> s == shape, canvas.shapes))
+end
 # ------------------------------------
 """
 Rendering using a visitor
@@ -161,17 +190,23 @@ end
 function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas())
     ctx = getgc(gtk)
     encompassingRectangle = computeEncompassingRectangle(box)
-    offsetFromCameraToScreen = (width(gtk) / 2, height(gtk) / 2)
-    # println("DEBUG1: " * string(encompassingRectangle))
-    # println("DEBUG2: " * string(box))
+    _offsetFromCameraToScreen = offsetFromCanvasToScreen(gtk)
     rectangle(ctx, 
-                encompassingRectangle[1] + offsetFromCameraToScreen[1], 
-                encompassingRectangle[2] + offsetFromCameraToScreen[2], 
+                encompassingRectangle[1] + _offsetFromCameraToScreen[1], 
+                encompassingRectangle[2] + _offsetFromCameraToScreen[2], 
                 encompassingRectangle[3], 
                 encompassingRectangle[4])
     color = box.color
     set_source_rgb(ctx, color.r, color.g, color.b)
     fill(ctx)
+end
+
+function offsetFromCanvasToScreen(gtk::GtkCanvas)
+    return (width(gtk) / 2, height(gtk) / 2)
+end
+
+function offsetFromScreenToCanvas(gtk::GtkCanvas)
+    return offsetFromCanvasToScreen(gtk) .* -1
 end
 
 # ------------------------------------
@@ -183,12 +218,25 @@ mutable struct Callback
     f
 end
 
-function addCallback!(shape::Shape, callback::Callback)
-    push!(shape.callbacks, callback)
+function addCallback!(shapeOrCanvas, callback::Callback)
+    push!(shapeOrCanvas.callbacks, callback)
 end
 
-function numberOfCallbacks(shape::Shape)
-    return length(shape.callbacks)
+function addCallback!(anArray::Array{Shape}, callback::Callback)
+    for aShape in anArray
+        addCallback!(aShape, callback::Callback)
+    end
 end
 
+function numberOfCallbacks(shapeOrCanvas)
+    return length(shapeOrCanvas.callbacks)
+end
+
+function triggerCallback(shapeOrCanvas, name::Symbol, event)
+    for c in shapeOrCanvas.callbacks
+        if (c.name == name)
+            c.f(event, shapeOrCanvas)
+        end
+    end
+end 
 end
