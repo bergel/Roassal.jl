@@ -9,7 +9,8 @@ export Shape
 export pos, extent, computeEncompassingRectangle
 export translateTo!, extent!
 
-export RBox
+export RBox, getColor, setColor!
+
 export RColor
 
 export RCanvas
@@ -21,6 +22,8 @@ export shapesOf
 
 export Callback
 export numberOfCallbacks, addCallback!, triggerCallback
+
+export riHighlightable
 
 # ------------------------------------
 """
@@ -42,12 +45,16 @@ mutable struct RBox <: BoundedShape
 end
 RBox(;color=RColor(), x=0, y=0, width=10, height=10) = RBox(color, x, y, width, height, [])
 
-# ------------------------------------
-"""
-Operation on shapes
-"""
 pos(s::BoundedShape) = (s.x, s.y)
 extent(s::BoundedShape) = (s.width, s.height)
+
+function setColor!(s, color)
+    s.color = color
+end
+
+function getColor(s::Shape)
+    return s.color
+end
 
 function extent!(s::BoundedShape, width, height)
     s.width = width
@@ -84,8 +91,9 @@ Canvas
 mutable struct RCanvas
     shapes::Array{Shape}
     callbacks
+    shapeBeingPointed
 end
-RCanvas() = RCanvas([], [])
+RCanvas() = RCanvas([], [], RBox())
 
 numberOfShapes(c::RCanvas) = length(c.shapes)
 add!(c::RCanvas, s::Shape) = push!(c.shapes, s)
@@ -135,9 +143,16 @@ function rshow(canvas::RCanvas)
     c.mouse.motion = @guarded (widget, event) -> begin
         offset = offsetFromScreenToCanvas(c)
         shapeOrCanvas = getShapeAtPosition(canvas, event.x + offset[1], event.y + offset[2])
-        # print("($(event.x), $(event.y)) -> ")
-        # println(typeof(shapeOrCanvas))
+        #print("($(event.x), $(event.y)) -> ")
+        #println(typeof(shapeOrCanvas))
         triggerCallback(shapeOrCanvas, :mouseMove, event)
+
+        # Emit the enter / leave event
+        if (canvas.shapeBeingPointed !== shapeOrCanvas)
+            triggerCallback(shapeOrCanvas, :mouseLeave, event)
+            canvas.shapeBeingPointed = shapeOrCanvas
+            triggerCallback(shapeOrCanvas, :mouseEnter, event)
+        end
 
         #Probably triggerCallback should indicates whether there has been some trigger.
         redraw(canvas, c)
@@ -239,4 +254,29 @@ function triggerCallback(shapeOrCanvas, name::Symbol, event)
         end
     end
 end 
+
+# ------------------------------------
+# Interactions
+
+function riHighlightable(shape::Shape)
+    oldColor = nothing
+    function recordOld(s)
+        oldColor = getColor(s)
+        setColor!(s, RColor(0, 0, 1.0))
+        print("Recorded!")
+        println(oldColor)
+    end
+    function giveOldColor(s)
+        println("mouse leave!")
+        setColor!(s, oldColor)
+    end
+
+    addCallback!(shape, Callback(:mouseEnter, (event, s) -> recordOld(s)))
+    addCallback!(shape, Callback(:mouseLeave, (event, s) -> giveOldColor(s)))
+    return shape
+end
+
+# ------------------------------------
+
+
 end

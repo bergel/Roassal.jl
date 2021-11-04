@@ -33,7 +33,8 @@ function example03()
             add!(canvas, box)
         end
     end
-    addCallback!(shapesOf(canvas), Callback(:mouseClick, (event, shape) -> removeShape!(canvas, shape)))
+    #addCallback!(shapesOf(canvas), Callback(:mouseClick, (event, shape) -> removeShape!(canvas, shape)))
+    riHighlightable(shapesOf(canvas)[1])
     #addCallback!(firstBox, Callback(:mouseMove, (event, shape) -> println("CALLBACK mouse move $(shape)")))
     rshow(canvas)
 end

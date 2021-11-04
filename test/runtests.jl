@@ -14,6 +14,12 @@ function testBox01()
     @test pos(box1) == (0,0)
     @test extent(box1) == (10,10)
     @test computeEncompassingRectangle(box1) == (-5, -5, 10, 10)
+
+    c = getColor(box1)
+    @test c === aColor
+    anotherColor = RColor(1.0, 1.0, 0.5)
+    setColor!(box1, anotherColor)
+    @test getColor(box1) === anotherColor
 end
 
 function testBox02() 
