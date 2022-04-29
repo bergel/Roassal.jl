@@ -1,27 +1,27 @@
 module Roassal
 
 # ------------------------------------
-# Graphic 
+# Graphic
 using Gtk, Graphics
 # ------------------------------------
-# Modelling
+# Modeling
 export Shape
-export pos, extent, computeEncompassingRectangle
-export translateTo!, extent!
+export pos, extent, compute_encompassing_rectangle
+export translate_to!, extent!
 
 export RBox, getColor, setColor!
 
 export RColor
 
 export RCanvas
-export numberOfShapes, add!, removeShape!, rshow
+export number_of_shapes, add!, remove_shape!, rshow
 export rendererVisitor
-export getShapeAtPosition
-export offsetFromCanvasToScreen, offsetFromScreenToCanvas
-export shapesOf
+export get_shape_at_position
+export offset_from_canvas_to_screen, offsetFromScreenToCanvas
+export get_shapes
 
 export Callback
-export numberOfCallbacks, addCallback!, triggerCallback
+export numberOfCallbacks, add_callback!, triggerCallback
 
 export riHighlightable
 
@@ -61,13 +61,13 @@ function extent!(s::BoundedShape, width, height)
     s.height = height
 end
 
-function translateTo!(s::BoundedShape, x, y) 
+function translate_to!(s::BoundedShape, x, y)
     s.x = x
     s.y = y
 end
 
 # Return (x, y, w, h)
-function computeEncompassingRectangle(s::BoundedShape)
+function compute_encompassing_rectangle(s::BoundedShape)
     x = s.x - (s.width / 2)
     y = s.y - (s.height / 2)
     return (x, y, s.width, s.height)
@@ -95,9 +95,9 @@ mutable struct RCanvas
 end
 RCanvas() = RCanvas([], [], RBox())
 
-numberOfShapes(c::RCanvas) = length(c.shapes)
+number_of_shapes(c::RCanvas) = length(c.shapes)
 add!(c::RCanvas, s::Shape) = push!(c.shapes, s)
-shapesOf(c::RCanvas) = c.shapes
+get_shapes(c::RCanvas) = c.shapes
 
 function TODELETEshow(canvas::RCanvas)
     c = @GtkCanvas()
@@ -142,7 +142,7 @@ function rshow(canvas::RCanvas)
 
     c.mouse.motion = @guarded (widget, event) -> begin
         offset = offsetFromScreenToCanvas(c)
-        shapeOrCanvas = getShapeAtPosition(canvas, event.x + offset[1], event.y + offset[2])
+        shapeOrCanvas = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
         #print("($(event.x), $(event.y)) -> ")
         #println(typeof(shapeOrCanvas))
         triggerCallback(shapeOrCanvas, :mouseMove, event)
@@ -167,7 +167,7 @@ function rshow(canvas::RCanvas)
         # stroke(ctx)
         #reveal(widget)
         offset = offsetFromScreenToCanvas(c)
-        shapeOrCanvas = getShapeAtPosition(canvas, event.x + offset[1], event.y + offset[2])
+        shapeOrCanvas = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
         triggerCallback(shapeOrCanvas, :mouseClick, event)
 
         #Probably triggerCallback should indicates whether there has been some trigger.
@@ -179,9 +179,9 @@ function rshow(canvas::RCanvas)
     show(c)
 end
 
-function getShapeAtPosition(canvas::RCanvas, x::Number, y::Number)
+function get_shape_at_position(canvas::RCanvas, x::Number, y::Number)
     for shape in canvas.shapes
-        c = computeEncompassingRectangle(shape)
+        c = compute_encompassing_rectangle(shape)
         if c[1] <= x && c[2] <= y && (c[3] + c[1]) > x && (c[4] + c[2]) > y
             return shape
         end
@@ -189,7 +189,7 @@ function getShapeAtPosition(canvas::RCanvas, x::Number, y::Number)
     return canvas
 end
 
-function removeShape!(canvas::RCanvas, shape::Shape)
+function remove_shape!(canvas::RCanvas, shape::Shape)
     deleteat!(canvas.shapes, findall(s -> s == shape, canvas.shapes))
 end
 # ------------------------------------
@@ -204,24 +204,24 @@ end
 
 function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas())
     ctx = getgc(gtk)
-    encompassingRectangle = computeEncompassingRectangle(box)
-    _offsetFromCameraToScreen = offsetFromCanvasToScreen(gtk)
-    rectangle(ctx, 
-                encompassingRectangle[1] + _offsetFromCameraToScreen[1], 
-                encompassingRectangle[2] + _offsetFromCameraToScreen[2], 
-                encompassingRectangle[3], 
+    encompassingRectangle = compute_encompassing_rectangle(box)
+    _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
+    rectangle(ctx,
+                encompassingRectangle[1] + _offsetFromCameraToScreen[1],
+                encompassingRectangle[2] + _offsetFromCameraToScreen[2],
+                encompassingRectangle[3],
                 encompassingRectangle[4])
     color = box.color
     set_source_rgb(ctx, color.r, color.g, color.b)
     fill(ctx)
 end
 
-function offsetFromCanvasToScreen(gtk::GtkCanvas)
+function offset_from_canvas_to_screen(gtk::GtkCanvas)
     return (width(gtk) / 2, height(gtk) / 2)
 end
 
 function offsetFromScreenToCanvas(gtk::GtkCanvas)
-    return offsetFromCanvasToScreen(gtk) .* -1
+    return offset_from_canvas_to_screen(gtk) .* -1
 end
 
 # ------------------------------------
@@ -233,13 +233,13 @@ mutable struct Callback
     f
 end
 
-function addCallback!(shapeOrCanvas, callback::Callback)
+function add_callback!(shapeOrCanvas, callback::Callback)
     push!(shapeOrCanvas.callbacks, callback)
 end
 
-function addCallback!(anArray::Array{Shape}, callback::Callback)
+function add_callback!(anArray::Array{Shape}, callback::Callback)
     for aShape in anArray
-        addCallback!(aShape, callback::Callback)
+        add_callback!(aShape, callback::Callback)
     end
 end
 
@@ -253,7 +253,7 @@ function triggerCallback(shapeOrCanvas, name::Symbol, event)
             c.f(event, shapeOrCanvas)
         end
     end
-end 
+end
 
 # ------------------------------------
 # Interactions
@@ -271,8 +271,8 @@ function riHighlightable(shape::Shape)
         setColor!(s, oldColor)
     end
 
-    addCallback!(shape, Callback(:mouseEnter, (event, s) -> recordOld(s)))
-    addCallback!(shape, Callback(:mouseLeave, (event, s) -> giveOldColor(s)))
+    add_callback!(shape, Callback(:mouseEnter, (event, s) -> recordOld(s)))
+    add_callback!(shape, Callback(:mouseLeave, (event, s) -> giveOldColor(s)))
     return shape
 end
 
