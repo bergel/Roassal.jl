@@ -16,11 +16,11 @@ function testBox01()
     @test extent(box1) == (10,10)
     @test compute_encompassing_rectangle(box1) == (-5, -5, 10, 10)
 
-    c = getColor(box1)
+    c = get_color(box1)
     @test c === aColor
     anotherColor = RColor(1.0, 1.0, 0.5)
-    setColor!(box1, anotherColor)
-    @test getColor(box1) === anotherColor
+    set_color!(box1, anotherColor)
+    @test get_color(box1) === anotherColor
 end
 
 function testBox02()
@@ -109,21 +109,21 @@ function testCallbacks02()
     a = 0
 
     # Does not do much since there is no callback
-    triggerCallback(box, :mouseMove, "not an event")
-    triggerCallback(box, :mouseMove, "not an event")
+    trigger_callback(box, :mouseMove, "not an event")
+    trigger_callback(box, :mouseMove, "not an event")
 
-    add_callback!(box, Callback(:mouseMove, (event, shape) -> a = a + 1))
+    add_callback!(box, Callback(:mouseMove, () -> a = a + 1))
     @test numberOfCallbacks(box) == 1
     @test a == 0
-    triggerCallback(box, :mouseMove, "not an event")
+    trigger_callback(box, :mouseMove, "not an event")
     @test a == 1
-    triggerCallback(box, :mouseMove, "not an event")
+    trigger_callback(box, :mouseMove, "not an event")
     @test a == 2
 
-    triggerCallback(box, :mouseMove, "not an event2")
+    trigger_callback(box, :mouseMove, "not an event2")
     @test a == 3
 
-    triggerCallback(box, :mouseMoveNot, "not an event")
+    trigger_callback(box, :mouseMoveNot, "not an event")
     @test a == 3
 end
 
@@ -133,36 +133,36 @@ function testCallbacks03()
     a = 0
 
     # Does not do much since there is no callback
-    triggerCallback(canvas, :mouseMove, "not an event")
-    triggerCallback(canvas, :mouseMove, "not an event")
+    trigger_callback(canvas, :mouseMove, "not an event")
+    trigger_callback(canvas, :mouseMove, "not an event")
 
-    add_callback!(canvas, Callback(:mouseMove, (event, shape) -> a = a + 1))
+    add_callback!(canvas, Callback(:mouseMove, () -> a = a + 1))
     @test numberOfCallbacks(canvas) == 1
     @test a == 0
-    triggerCallback(canvas, :mouseMove, "not an event")
+    trigger_callback(canvas, :mouseMove, "not an event")
     @test a == 1
-    triggerCallback(canvas, :mouseMove, "not an event")
+    trigger_callback(canvas, :mouseMove, "not an event")
     @test a == 2
 
-    triggerCallback(canvas, :mouseMove, "not an event2")
+    trigger_callback(canvas, :mouseMove, "not an event2")
     @test a == 3
 
-    triggerCallback(canvas, :mouseMoveNot, "not an event")
+    trigger_callback(canvas, :mouseMoveNot, "not an event")
     @test a == 3
 end
 
-function testCallbacks04()
+#= function testCallbacks04()
     canvas = RCanvas()
     t = nothing
-    add_callback!(canvas, Callback(:mouseMove, (event, shape) -> t = (event, shape)))
+    add_callback!(canvas, Callback(:mouseMove, () -> t = (event, shape)))
     @test isnothing(t)
     @test numberOfCallbacks(canvas) == 1
 
-    triggerCallback(canvas, :mouseMove, "not an event")
+    trigger_callback(canvas, :mouseMove, "not an event")
     @test length(t) == 2
     @test t[1] == "not an event"
     @test t[2] == canvas
-end
+end =#
 
 function testCallback05()
     canvas = RCanvas()
@@ -170,15 +170,15 @@ function testCallback05()
     box2 = RBox()
     add!(canvas, box1)
     add!(canvas, box2)
-    add_callback!(get_shapes(canvas), Callback(:mouseMove, (event, shape) -> 42))
+    add_callback!(get_shapes(canvas), Callback(:mouseMove, () -> 42))
     @test numberOfCallbacks(box1) == 1
     @test numberOfCallbacks(box2) == 1
 
-    add_callback!(get_shapes(canvas)[1], Callback(:mouseMove, (event, shape) -> 42))
+    add_callback!(get_shapes(canvas)[1], Callback(:mouseMove, () -> 42))
     @test numberOfCallbacks(box1) == 2
     @test numberOfCallbacks(box2) == 1
 
-    add_callback!(get_shapes(canvas), Callback(:mouseMove, (event, shape) -> 42))
+    add_callback!(get_shapes(canvas), Callback(:mouseMove, () -> 42))
     @test numberOfCallbacks(box1) == 3
     @test numberOfCallbacks(box2) == 2
 end
@@ -190,6 +190,10 @@ end
     # @test (offset_from_canvas_to_screen(gtk) .+ offset_from_canvas_to_screen(gtk)) == (0, 0)
 end
 
+
+
+
+
 # ------------------------------------
 @testset "Roassal" begin
     testColor()
@@ -199,5 +203,7 @@ end
     testFetchingShape()
     testCallbacks01()
     testCallbacks02()
-    testCallbacks04()
+    #testCallbacks04()
 end
+
+include("Interaction.jl");

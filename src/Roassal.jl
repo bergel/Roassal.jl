@@ -1,4 +1,5 @@
 module Roassal
+using Infiltrator
 
 # ------------------------------------
 # Graphic
@@ -9,9 +10,9 @@ export Shape
 export pos, extent, compute_encompassing_rectangle
 export translate_to!, extent!
 
-export RBox, getColor, setColor!
+export RBox, get_color, set_color!
 
-export RColor
+export RColor, RColor_BLUE, RColor_GREEN, RColor_RED
 
 export RCanvas
 export number_of_shapes, add!, remove_shape!, rshow
@@ -21,10 +22,10 @@ export offset_from_canvas_to_screen, offsetFromScreenToCanvas
 export get_shapes
 
 export Callback
-export numberOfCallbacks, add_callback!, triggerCallback
+export numberOfCallbacks, add_callback!, trigger_callback
 
-export riHighlightable
-
+export highlightable
+export popup
 # ------------------------------------
 """
 Shape definitions
@@ -42,17 +43,18 @@ mutable struct RBox <: BoundedShape
     width
     height
     callbacks
+    canvas
 end
-RBox(;color=RColor(), x=0, y=0, width=10, height=10) = RBox(color, x, y, width, height, [])
+RBox(;color=RColor(), x=0, y=0, width=10, height=10, canvas=nothing) = RBox(color, x, y, width, height, [], nothing)
 
 pos(s::BoundedShape) = (s.x, s.y)
 extent(s::BoundedShape) = (s.width, s.height)
 
-function setColor!(s, color)
+function set_color!(s, color)
     s.color = color
 end
 
-function getColor(s::Shape)
+function get_color(s::Shape)
     return s.color
 end
 
@@ -61,7 +63,11 @@ function extent!(s::BoundedShape, width, height)
     s.height = height
 end
 
-function translate_to!(s::BoundedShape, x, y)
+function translate_to!(s::BoundedShape, p::Tuple{Number, Number})
+    translate_to!(s, p[1], p[2])
+end
+
+function translate_to!(s::BoundedShape, x::Number, y::Number)
     s.x = x
     s.y = y
 end
@@ -84,6 +90,10 @@ mutable struct RColor
 end
 RColor() = RColor(0.8, 0.8, 0.8)
 
+RColor_BLUE = RColor(0, 0, 1)
+RColor_GREEN = RColor(0, 1, 0)
+RColor_RED = RColor(1, 0, 0)
+
 # ------------------------------------
 """
 Canvas
@@ -96,27 +106,13 @@ end
 RCanvas() = RCanvas([], [], RBox())
 
 number_of_shapes(c::RCanvas) = length(c.shapes)
-add!(c::RCanvas, s::Shape) = push!(c.shapes, s)
-get_shapes(c::RCanvas) = c.shapes
 
-function TODELETEshow(canvas::RCanvas)
-    c = @GtkCanvas()
-    win = GtkWindow(c, "Roassal")
-    @guarded draw(c) do widget
-        ctx = getgc(c)
-        h = height(c)
-        w = width(c)
-        # Paint red rectangle
-        rectangle(ctx, 0, 0, w, h / 2)
-        set_source_rgb(ctx, 1, 0, 0)
-        fill(ctx)
-        # Paint blue rectangle
-        rectangle(ctx, 0, 3h / 4, w, h / 4)
-        set_source_rgb(ctx, 0, 0, 1)
-        fill(ctx)
-    end
-    show(c)
+function add!(c::RCanvas, s::Shape)
+    push!(c.shapes, s)
+    s.canvas = c
 end
+
+get_shapes(c::RCanvas) = c.shapes
 
 function redraw(canvas::RCanvas, c::GtkCanvas)
     @guarded draw(c) do widget
@@ -142,19 +138,19 @@ function rshow(canvas::RCanvas)
 
     c.mouse.motion = @guarded (widget, event) -> begin
         offset = offsetFromScreenToCanvas(c)
-        shapeOrCanvas = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
-        #print("($(event.x), $(event.y)) -> ")
-        #println(typeof(shapeOrCanvas))
-        triggerCallback(shapeOrCanvas, :mouseMove, event)
+        shape_or_canvas_under_mouse = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
+        #println("($(event.x), $(event.y)) -> $(typeof(shape_or_canvas_under_mouse))")
+        trigger_callback(shape_or_canvas_under_mouse, :mouseMove, event)
 
         # Emit the enter / leave event
-        if (canvas.shapeBeingPointed !== shapeOrCanvas)
-            triggerCallback(shapeOrCanvas, :mouseLeave, event)
-            canvas.shapeBeingPointed = shapeOrCanvas
-            triggerCallback(shapeOrCanvas, :mouseEnter, event)
+        if (canvas.shapeBeingPointed !== shape_or_canvas_under_mouse)
+            #println("CHANGE SHAPE/CANVAS\n")
+            trigger_callback(canvas.shapeBeingPointed, :mouseLeave, event)
+            canvas.shapeBeingPointed = shape_or_canvas_under_mouse
+            trigger_callback(shape_or_canvas_under_mouse, :mouseEnter, event)
         end
 
-        #Probably triggerCallback should indicates whether there has been some trigger.
+        #Probably trigger_callback should indicates whether there has been some trigger.
         redraw(canvas, c)
         reveal(widget)
         #println("refresh!!")
@@ -167,10 +163,10 @@ function rshow(canvas::RCanvas)
         # stroke(ctx)
         #reveal(widget)
         offset = offsetFromScreenToCanvas(c)
-        shapeOrCanvas = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
-        triggerCallback(shapeOrCanvas, :mouseClick, event)
+        shape_or_canvas_under_mouse = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
+        trigger_callback(shape_or_canvas_under_mouse, :mouseClick, event)
 
-        #Probably triggerCallback should indicates whether there has been some trigger.
+        #Probably trigger_callback should indicates whether there has been some trigger.
         redraw(canvas, c)
         reveal(widget)
         #println("refresh!!")
@@ -233,8 +229,8 @@ mutable struct Callback
     f
 end
 
-function add_callback!(shapeOrCanvas, callback::Callback)
-    push!(shapeOrCanvas.callbacks, callback)
+function add_callback!(shape_or_canvas_under_mouse, callback::Callback)
+    push!(shape_or_canvas_under_mouse.callbacks, callback)
 end
 
 function add_callback!(anArray::Array{Shape}, callback::Callback)
@@ -243,40 +239,94 @@ function add_callback!(anArray::Array{Shape}, callback::Callback)
     end
 end
 
-function numberOfCallbacks(shapeOrCanvas)
-    return length(shapeOrCanvas.callbacks)
+function numberOfCallbacks(shape_or_canvas_under_mouse)
+    return length(shape_or_canvas_under_mouse.callbacks)
 end
 
-function triggerCallback(shapeOrCanvas, name::Symbol, event)
-    for c in shapeOrCanvas.callbacks
+function trigger_callback(shape_or_canvas_under_mouse, name::Symbol, event=nothing)
+    # Can be better written
+    for c in shape_or_canvas_under_mouse.callbacks
         if (c.name == name)
-            c.f(event, shapeOrCanvas)
+            #c.f(event, shape_or_canvas_under_mouse)
+            c.f()
         end
     end
 end
 
 # ------------------------------------
 # Interactions
+function highlightable(canvas::RCanvas)
+    foreach(shape -> highlightable(shape), get_shapes(canvas))
+end
 
-function riHighlightable(shape::Shape)
+function highlightable(shapes::Vector{Shape})
+    foreach(shape -> highlightable(shape), shapes)
+end
+#=
+function highlightable(shape::Shape)
     oldColor = nothing
-    function recordOld(s)
-        oldColor = getColor(s)
-        setColor!(s, RColor(0, 0, 1.0))
+    function recordOld()
+        oldColor = get_color(s)
+        set_color!(shape, RColor_BLUE)
         print("Recorded!")
         println(oldColor)
     end
-    function giveOldColor(s)
+    function giveOldColor()
         println("mouse leave!")
-        setColor!(s, oldColor)
+        set_color!(shape, oldColor)
     end
 
-    add_callback!(shape, Callback(:mouseEnter, (event, s) -> recordOld(s)))
-    add_callback!(shape, Callback(:mouseLeave, (event, s) -> giveOldColor(s)))
+    #add_callback!(shape, Callback(:mouseEnter, (event, s) -> recordOld(s)))
+    #add_callback!(shape, Callback(:mouseLeave, (event, s) -> giveOldColor(s)))
+    add_callback!(shape, Callback(:mouseEnter, recordOld))
+    add_callback!(shape, Callback(:mouseLeave, giveOldColor))
+    return shape
+end =#
+
+highlighted_shapes = Dict{Shape,RColor}()
+function highlightable(shape::Shape)
+    function recordColor()
+        global highlighted_shapes[shape] = get_color(shape)
+        #print("Recorded! $shape \n")
+        set_color!(shape, RColor_BLUE)
+    end
+    function restoreColor()
+        #println("mouse leave! $(haskey(highlighted_shapes, shape))\n")
+        if(haskey(highlighted_shapes, shape))
+            set_color!(shape, highlighted_shapes[shape])
+            delete!(highlighted_shapes, shape)
+        end
+    end
+
+    add_callback!(shape, Callback(:mouseEnter, recordColor))
+    add_callback!(shape, Callback(:mouseLeave, restoreColor))
     return shape
 end
 
-# ------------------------------------
+function reset_highlight()
+    highlighted_shapes = Dict{Shape,RColor}()
+end
 
+# ------------------------------------
+last_popup = nothing
+function popup(shape::Shape)
+    function addPopup()
+        removePopup()
+        global last_popup = RBox(width=40, height=15)
+        add!(shape.canvas, last_popup)
+        translate_to!(last_popup, pos(shape) .- (20, 20))
+    end
+    function removePopup()
+        if(!isnothing(last_popup))
+            remove_shape!(shape.canvas, last_popup)
+            global last_popup = nothing
+        end
+    end
+
+    add_callback!(shape, Callback(:mouseEnter, addPopup))
+    add_callback!(shape, Callback(:mouseLeave, removePopup))
+    return shape
+end
+# ------------------------------------
 
 end
