@@ -12,6 +12,8 @@ export translate_to!, extent!
 
 export RBox, get_color, set_color!
 
+export RLine
+
 export RColor, RColor_BLUE, RColor_GREEN, RColor_RED
 
 export RCanvas
@@ -44,13 +46,17 @@ mutable struct RBox <: BoundedShape
     height
     callbacks
     canvas
+    outgoing_edges
+    incoming_edges
 end
-RBox(;color=RColor(), x=0, y=0, width=10, height=10, canvas=nothing) = RBox(color, x, y, width, height, [], nothing)
+RBox(;color=RColor(),
+        x=0, y=0,
+        width=10, height=10) = RBox(color, x, y, width, height, [], nothing, [], [])
 
 pos(s::BoundedShape) = (s.x, s.y)
 extent(s::BoundedShape) = (s.width, s.height)
 
-function set_color!(s, color)
+function set_color!(s::Shape, color)
     s.color = color
 end
 
@@ -77,6 +83,22 @@ function compute_encompassing_rectangle(s::BoundedShape)
     x = s.x - (s.width / 2)
     y = s.y - (s.height / 2)
     return (x, y, s.width, s.height)
+end
+
+# ------------------------------------
+
+mutable struct RLine <: Shape
+    from
+    to
+    color
+    canvas
+end
+
+function RLine(from::Shape, to::Shape; color=RColor_BLUE)
+    a_line = RLine(from, to, color, nothing)
+    push!(from.outgoing_edges, a_line)
+    push!(to.incoming_edges, a_line)
+    return a_line
 end
 
 # ------------------------------------
@@ -211,6 +233,36 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas())
     set_source_rgb(ctx, color.r, color.g, color.b)
     fill(ctx)
 end
+
+function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas())
+    ctx = getgc(gtk)
+
+    color = line.color
+    set_source_rgb(ctx, color.r, color.g, color.b)
+
+    _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
+    from_position = pos(line.from) .+ _offsetFromCameraToScreen
+    to_position = pos(line.to) .+ _offsetFromCameraToScreen
+    move_to(ctx, from_position...)
+    line_to(ctx, to_position...)
+    set_line_width(ctx, 2.0)
+    stroke(ctx)
+
+    println("DEBUG: $color $from_position $to_position")
+
+#=     fill(ctx)
+    paint(cr)
+ =##=
+    rectangle(ctx,
+                encompassingRectangle[1] + _offsetFromCameraToScreen[1],
+                encompassingRectangle[2] + _offsetFromCameraToScreen[2],
+                encompassingRectangle[3],
+                encompassingRectangle[4])
+    color = box.color
+    set_source_rgb(ctx, color.r, color.g, color.b)
+    fill(ctx) =#
+end
+
 
 function offset_from_canvas_to_screen(gtk::GtkCanvas)
     return (width(gtk) / 2, height(gtk) / 2)
