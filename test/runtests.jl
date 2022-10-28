@@ -195,13 +195,17 @@ end
     @test c.offset_X == 0
     @test c.offset_Y == 0
 
-    translate_to!(c, (10, 15))
+    translate_by!(c, (10, 15))
     @test c.offset_X == 10
     @test c.offset_Y == 15
 
-    translate_to!(c, (1, -5))
+    translate_by!(c, (1, -5))
     @test c.offset_X == 11
     @test c.offset_Y == 10
+
+    translate_to!(c, (10, -50))
+    @test c.offset_X == 10
+    @test c.offset_Y == -50
 end
 
 

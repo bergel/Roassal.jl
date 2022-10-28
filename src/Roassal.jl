@@ -8,7 +8,7 @@ using Gtk, Graphics
 # Modeling
 export Shape
 export pos, extent, compute_encompassing_rectangle
-export translate_to!, extent!
+export translate_to!, extent!, translate_by!
 
 export RBox, get_color, set_color!
 
@@ -151,12 +151,22 @@ function redraw(canvas::RCanvas, c::GtkCanvas)
     end
 end
 
-function translate_to!(canvas::RCanvas, delta::Tuple{Int64,Int64})
-    translate_to!(canvas, delta[1], delta[2])
+function translate_to!(canvas::RCanvas, new_position::Tuple{Int64,Int64})
+    translate_to!(canvas, new_position[1], new_position[2])
 end
 
 
-function translate_to!(canvas::RCanvas, delta_X::Int64, delta_Y::Int64)
+function translate_to!(canvas::RCanvas, new_X::Int64, new_Y::Int64)
+    canvas.offset_X = new_X
+    canvas.offset_Y = new_Y
+end
+
+function translate_by!(canvas::RCanvas, delta::Tuple{Int64,Int64})
+    translate_by!(canvas, delta[1], delta[2])
+end
+
+
+function translate_by!(canvas::RCanvas, delta_X::Int64, delta_Y::Int64)
     canvas.offset_X = canvas.offset_X + delta_X
     canvas.offset_Y = canvas.offset_Y + delta_Y
 end
@@ -168,6 +178,18 @@ function rshow(canvas::RCanvas)
 
     signal_connect(win, "key-press-event") do widget, event
         println("You pressed key ", event.keyval)
+        step = 20
+        big_step = step * 3
+        event.keyval == 65361 && translate_by!(canvas, step, 0)
+        event.keyval == 65363 && translate_by!(canvas, -step, 0)
+        event.keyval == 65364 && translate_by!(canvas, 0, -step)
+        event.keyval == 65362 && translate_by!(canvas, 0, step)
+
+        event.keyval == 97 && translate_by!(canvas, big_step, 0)
+        event.keyval == 100 && translate_by!(canvas, -big_step, 0)
+        event.keyval == 119 && translate_by!(canvas, 0, -big_step)
+        event.keyval == 115 && translate_by!(canvas, 0, big_step)
+        redraw(canvas, c)
     end
 
     c.mouse.motion = @guarded (widget, event) -> begin
@@ -228,17 +250,17 @@ Rendering using a visitor
 """
 function rendererVisitor(canvas::RCanvas, gtk::GtkCanvas=GtkCanvas())
     for shape in canvas.shapes
-        rendererVisitor(shape, gtk)
+        rendererVisitor(shape, gtk, canvas.offset_X, canvas.offset_Y)
     end
 end
 
-function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas())
+function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=0, offset_y::Int64=0)
     ctx = getgc(gtk)
     encompassingRectangle = compute_encompassing_rectangle(box)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
     rectangle(ctx,
-                encompassingRectangle[1] + _offsetFromCameraToScreen[1],
-                encompassingRectangle[2] + _offsetFromCameraToScreen[2],
+                encompassingRectangle[1] + _offsetFromCameraToScreen[1] + offset_x,
+                encompassingRectangle[2] + _offsetFromCameraToScreen[2] + offset_y,
                 encompassingRectangle[3],
                 encompassingRectangle[4])
     color = box.color
@@ -246,15 +268,15 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas())
     fill(ctx)
 end
 
-function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas())
+function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=0, offset_y::Int64=0)
     ctx = getgc(gtk)
 
     color = line.color
     set_source_rgb(ctx, color.r, color.g, color.b)
 
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
-    from_position = pos(line.from) .+ _offsetFromCameraToScreen
-    to_position = pos(line.to) .+ _offsetFromCameraToScreen
+    from_position = pos(line.from) .+ _offsetFromCameraToScreen .+ (offset_x, offset_y)
+    to_position = pos(line.to) .+ _offsetFromCameraToScreen .+ (offset_x, offset_y)
     move_to(ctx, from_position...)
     line_to(ctx, to_position...)
     set_line_width(ctx, 2.0)
