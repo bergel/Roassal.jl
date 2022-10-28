@@ -8,7 +8,7 @@
     @test isempty(box2.outgoing_edges)
     @test isempty(box2.incoming_edges)
 
-    line = Line(box1, box2)
+    line = RLine(box1, box2)
 
     @test line.from == box1
     @test line.to == box2
