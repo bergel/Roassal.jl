@@ -183,13 +183,26 @@ function testCallback05()
     @test numberOfCallbacks(box2) == 2
 end
 
-@testset "test - offset_from_canvas_to_screen" begin
+@testset "offset_from_canvas_to_screen" begin
     gtk = GtkCanvas()
     @test offset_from_canvas_to_screen(gtk) != (0, 0)
     @test offset_from_canvas_to_screen(gtk) != (0, 0)
     # @test (offset_from_canvas_to_screen(gtk) .+ offset_from_canvas_to_screen(gtk)) == (0, 0)
 end
 
+@testset "Offset" begin
+    c = RCanvas()
+    @test c.offset_X == 0
+    @test c.offset_Y == 0
+
+    translate_to!(c, (10, 15))
+    @test c.offset_X == 10
+    @test c.offset_Y == 15
+
+    translate_to!(c, (1, -5))
+    @test c.offset_X == 11
+    @test c.offset_Y == 10
+end
 
 
 

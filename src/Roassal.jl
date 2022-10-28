@@ -1,5 +1,5 @@
 module Roassal
-using Infiltrator
+#using Infiltrator
 
 # ------------------------------------
 # Graphic
@@ -124,8 +124,10 @@ mutable struct RCanvas
     shapes::Array{Shape}
     callbacks
     shapeBeingPointed
+    offset_X::Int64
+    offset_Y::Int64
 end
-RCanvas() = RCanvas([], [], RBox())
+RCanvas() = RCanvas([], [], RBox(), 0, 0)
 
 number_of_shapes(c::RCanvas) = length(c.shapes)
 
@@ -147,6 +149,16 @@ function redraw(canvas::RCanvas, c::GtkCanvas)
 
         rendererVisitor(canvas, c)
     end
+end
+
+function translate_to!(canvas::RCanvas, delta::Tuple{Int64,Int64})
+    translate_to!(canvas, delta[1], delta[2])
+end
+
+
+function translate_to!(canvas::RCanvas, delta_X::Int64, delta_Y::Int64)
+    canvas.offset_X = canvas.offset_X + delta_X
+    canvas.offset_Y = canvas.offset_Y + delta_Y
 end
 
 function rshow(canvas::RCanvas)
