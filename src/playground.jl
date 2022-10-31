@@ -73,7 +73,23 @@ function example05()
     rshow(c)
 end
 
-example05()
+function example06()
+    c = RCanvas()
+    s1 = RCircle()
+    s2 = RCircle()
+
+    add!(c, s1)
+    add!(c, s2)
+
+    translate_to!(s2, 50, 30)
+
+    line = RLine(s1, s2)
+    add!(c, line)
+
+    rshow(c)
+end
+
+example06()
 
 print("Press Enter to exit")
 readline()

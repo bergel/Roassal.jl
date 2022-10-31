@@ -208,7 +208,7 @@ function show_rule_applications(rule_applications::Vector{RuleApplication})
     c = RCanvas()
 
     for (index, rule_app) in enumerate(rule_applications)
-        box = RBox()
+        box = RCircle()
         add!(c, box)
         y = findall(n -> n == rule_app.name, all_rules_names)[1] * shape_size
         translate_to!(box, index * shape_size, y)

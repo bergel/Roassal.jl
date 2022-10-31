@@ -11,6 +11,7 @@ export pos, extent, compute_encompassing_rectangle
 export translate_to!, extent!, translate_by!
 
 export RBox, get_color, set_color!
+export RCircle
 
 export RLine
 
@@ -56,6 +57,27 @@ RBox(;color=RColor(),
 pos(s::BoundedShape) = (s.x, s.y)
 extent(s::BoundedShape) = (s.width, s.height)
 
+
+mutable struct RCircle <: BoundedShape
+    color
+    x
+    y
+    width
+    height
+    callbacks
+    canvas
+    outgoing_edges
+    incoming_edges
+end
+RCircle(;color=RColor(),
+        x=0, y=0,
+        width=10, height=10) = RCircle(color, x, y, width, height, [], nothing, [], [])
+function set_size!(circle::RCircle, size::Float64)
+    circle.width = size
+    circle.height = size
+end
+
+
 function set_color!(s::Shape, color)
     s.color = color
 end
@@ -85,6 +107,9 @@ function compute_encompassing_rectangle(s::BoundedShape)
     return (x, y, s.width, s.height)
 end
 
+function compute_encompassing_rectangle(line::RLine)
+    return (0, 0, 0, 0)
+end
 # ------------------------------------
 
 mutable struct RLine <: Shape
@@ -264,6 +289,21 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=
                 encompassingRectangle[3],
                 encompassingRectangle[4])
     color = box.color
+    set_source_rgb(ctx, color.r, color.g, color.b)
+    fill(ctx)
+end
+
+function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=0, offset_y::Int64=0)
+    ctx = getgc(gtk)
+    _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
+
+    arc(ctx,
+        circle.x + _offsetFromCameraToScreen[1] + offset_x,
+        circle.y + _offsetFromCameraToScreen[2] + offset_y,
+        circle.width / 2,
+        0,
+        2pi)
+    color = circle.color
     set_source_rgb(ctx, color.r, color.g, color.b)
     fill(ctx)
 end
