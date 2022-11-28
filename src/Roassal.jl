@@ -13,6 +13,8 @@ export translate_to!, extent!, translate_by!
 export RBox, get_color, set_color!
 export RCircle
 
+export RText
+
 export RLine
 
 export RColor, RColor_BLUE, RColor_GREEN, RColor_RED
@@ -100,6 +102,15 @@ function translate_to!(s::BoundedShape, x::Number, y::Number)
     s.y = y
 end
 
+function translate_by!(s::BoundedShape, p::Tuple{Number, Number})
+    translate_by!(s, p[1], p[2])
+end
+
+function translate_by!(s::BoundedShape, dx::Number, dy::Number)
+    s.x = s.x + dx
+    s.y = s.y + dy
+end
+
 # Return (x, y, w, h)
 function compute_encompassing_rectangle(s::BoundedShape)
     x = s.x - (s.width / 2)
@@ -107,9 +118,6 @@ function compute_encompassing_rectangle(s::BoundedShape)
     return (x, y, s.width, s.height)
 end
 
-function compute_encompassing_rectangle(line::RLine)
-    return (0, 0, 0, 0)
-end
 # ------------------------------------
 
 mutable struct RLine <: Shape
@@ -124,6 +132,24 @@ function RLine(from::Shape, to::Shape; color=RColor_BLUE)
     push!(from.outgoing_edges, a_line)
     push!(to.incoming_edges, a_line)
     return a_line
+end
+
+function compute_encompassing_rectangle(line::RLine)
+    return (0, 0, 0, 0)
+end
+# ------------------------------------
+
+mutable struct RText <: BoundedShape
+    value::String
+    color
+    x
+    y
+    width
+    height
+end
+
+function RText(value::String; color=RColor_BLUE)
+    return RText(value, color, 0, 0, 0, 0)
 end
 
 # ------------------------------------
@@ -180,7 +206,6 @@ function translate_to!(canvas::RCanvas, new_position::Tuple{Int64,Int64})
     translate_to!(canvas, new_position[1], new_position[2])
 end
 
-
 function translate_to!(canvas::RCanvas, new_X::Int64, new_Y::Int64)
     canvas.offset_X = new_X
     canvas.offset_Y = new_Y
@@ -189,7 +214,6 @@ end
 function translate_by!(canvas::RCanvas, delta::Tuple{Int64,Int64})
     translate_by!(canvas, delta[1], delta[2])
 end
-
 
 function translate_by!(canvas::RCanvas, delta_X::Int64, delta_Y::Int64)
     canvas.offset_X = canvas.offset_X + delta_X

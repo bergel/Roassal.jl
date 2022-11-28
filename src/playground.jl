@@ -81,12 +81,13 @@ function example06()
     add!(c, s1)
     add!(c, s2)
 
-    translate_to!(s2, 50, 30)
-
     line = RLine(s1, s2)
     add!(c, line)
 
+    translate_to!(s2, 50, 30)
     rshow(c)
+    translate_by!(s2, 20, 20)
+    translate_by!(s1, -40, -10)
 end
 
 example06()
