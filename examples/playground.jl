@@ -92,8 +92,8 @@ end
 
 function example07()
     c = RCanvas()
-    for _ in 1:10
-        add!(c, RBox(; ))
+    for i in 1:10
+        add!(c, RBox(; size = i * 10))
     end
     apply(GridLayout(), c)
     rshow(c)

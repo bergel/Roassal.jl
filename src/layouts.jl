@@ -1,4 +1,5 @@
-export Layout, GridLayout, apply
+export Layout, HorizontalLineLayout, GridLayout
+export apply
 
 abstract type Layout end
 
@@ -10,6 +11,7 @@ function apply(::Layout, shapes::Vector{Shape})
     error("Application not defined")
 end
 
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 struct GridLayout <: Layout
     gap::Int64
     line_count::Int64
@@ -44,4 +46,20 @@ function apply(l::GridLayout, shapes::Vector{Shape})
 
         position_h = position_h + get_width(s) / 2 + l.gap
     end
+end
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+struct HorizontalLineLayout <: Layout
+    gap::Int64
+
+    function HorizontalLineLayout(gap::Int64)
+        return new(gap)
+    end
+
+    HorizontalLineLayout() = HorizontalLineLayout(5)
+end
+
+function apply(l::HorizontalLineLayout, shapes::Vector{Shape})
+    g = GridLayout(l.gap, length(shapes))
+    apply(g, shapes)
 end
