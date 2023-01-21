@@ -90,7 +90,16 @@ function example06()
     translate_by!(s1, -40, -10)
 end
 
-example06()
+function example07()
+    c = RCanvas()
+    for _ in 1:10
+        add!(c, RBox(; ))
+    end
+    apply(GridLayout(), c)
+    rshow(c)
+end
+
+example07()
 
 print("Press Enter to exit")
 readline()

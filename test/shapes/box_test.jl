@@ -1,3 +1,20 @@
+@testset "Creation" begin
+    @testset "Default" begin
+        b = RBox()
+        @test pos(b) == (0, 0)
+        @test get_width(b) == 10
+        @test get_height(b) == 10
+    end
+
+    @testset "Size" begin
+        b = RBox(; size=20)
+        @test pos(b) == (0, 0)
+        @test get_width(b) == 20
+        @test get_height(b) == 20
+    end
+
+end
+
 
 @testset "Encompassing" begin
     aColor = RColor()
@@ -18,4 +35,11 @@ end
     box = RBox()
     @test box.x == 0
     @test box.color != RColor()
+end
+
+@testset "Extent" begin
+    @test get_width(RBox(; width=10, height= 5)) == 10
+    @test get_height(RBox(; width=10, height= 5)) == 5
+    @test extent(RBox(; width=10, height=5)) == (10, 5)
+
 end

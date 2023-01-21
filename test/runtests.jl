@@ -22,3 +22,7 @@ end
 @testset "Color" begin
     include("color_test.jl");
 end
+
+@testset "Layout" begin
+    include("layouts/grid_test.jl");
+end

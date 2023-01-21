@@ -8,6 +8,7 @@ using Gtk, Graphics
 export Shape
 export pos, extent, compute_encompassing_rectangle
 export translate_to!, extent!, translate_by!
+export get_width, get_height
 
 export RBox, get_color, set_color!
 export RCircle
@@ -31,9 +32,6 @@ export numberOfCallbacks, add_callback!, trigger_callback
 export highlightable
 export popup
 
-
-include("layouts.jl")
-
 # ------------------------------------
 """
 Shape definitions
@@ -55,12 +53,20 @@ mutable struct RBox <: BoundedShape
     outgoing_edges
     incoming_edges
 end
-RBox(;color=RColor(),
+
+function RBox(;color=RColor(),
         x=0, y=0,
-        width=10, height=10) = RBox(color, x, y, width, height, [], nothing, [], [])
+        width=10, height=10, size::Int64=0)
+
+    size > 0 && return RBox(color, x, y, size, size, [], nothing, [], [])
+    return RBox(color, x, y, width, height, [], nothing, [], [])
+end
 
 pos(s::BoundedShape) = (s.x, s.y)
 extent(s::BoundedShape) = (s.width, s.height)
+get_width(s::BoundedShape) = extent(s)[1]
+get_height(s::BoundedShape) = extent(s)[2]
+
 
 
 mutable struct RCircle <: BoundedShape
@@ -481,5 +487,9 @@ function popup(shape::Shape)
     return shape
 end
 # ------------------------------------
+
+
+include("layouts.jl")
+
 
 end
