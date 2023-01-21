@@ -25,5 +25,6 @@ end
 
 @testset "Layout" begin
     include("layouts/grid_test.jl");
+    include("layouts/flow_test.jl");
     include("layouts/line_layout_test.jl");
 end

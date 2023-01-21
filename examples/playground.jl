@@ -95,7 +95,7 @@ function example07()
     for i in 1:10
         add!(c, RBox(; size = i * 10, color=RColor(i/10, i/10, i/10)))
     end
-    apply(GridLayout(), c)
+    apply(FlowLayout(), c)
     rshow(c)
 end
 

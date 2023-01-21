@@ -1,4 +1,5 @@
-export Layout, HorizontalLineLayout, GridLayout, VerticalLineLayout
+export Layout
+export FlowLayout, HorizontalLineLayout, GridLayout, VerticalLineLayout
 export apply
 
 abstract type Layout end
@@ -39,13 +40,6 @@ function apply(l::GridLayout, shapes::Vector{Shape})
     local position_v = 0
     local max_height = 0
     for (index, s) in enumerate(shapes)
-#=         if index > 1
-            if mod(index, lc+1) == 0
-                position_v = position_v + max_height + get_height(s)
-                position_h = 0
-            end
-        end =#
-
         translate_topleft_to!(s, (position_h, position_v))
 
         max_height = max(max_height, get_height(s))
@@ -74,7 +68,6 @@ function apply(l::HorizontalLineLayout, shapes::Vector{Shape})
     g = GridLayout(l.gap, length(shapes))
     apply(g, shapes)
 end
-
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
 struct VerticalLineLayout <: Layout
@@ -90,4 +83,45 @@ end
 function apply(l::VerticalLineLayout, shapes::Vector{Shape})
     g = GridLayout(l.gap, 1)
     apply(g, shapes)
+end
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+struct FlowLayout <: Layout
+    gap::Int64
+    max_width::Int64
+
+    FlowLayout(gap::Int64, max_width::Int64) = new(gap, max_width)
+    FlowLayout(gap::Int64) = FlowLayout(gap, -1)
+    FlowLayout() = FlowLayout(5)
+end
+
+function _compute_max_width(l::FlowLayout, shapes::Vector{T}) where T <: Shape
+    total_width_shapes = sum(map(s -> get_width(s) + 2*l.gap, shapes))
+    #height = trunc(ceil(sqrt(total_width_shapes * 0.9)))
+    #width = trunc(ceil(total_width_shapes / height))
+    return total_width_shapes / 5
+end
+
+function apply(l::FlowLayout, shapes::Vector{Shape})
+    if l.max_width == -1
+        max_width = _compute_max_width(l, shapes)
+    else
+        max_width = l.max_width
+    end
+
+    local position_h = 0
+    local position_v = 0
+    local max_height = 0
+    for (_, s) in enumerate(shapes)
+        translate_topleft_to!(s, (position_h, position_v))
+
+        max_height = max(max_height, get_height(s))
+        if position_h > max_width
+            position_v = position_v + max_height + l.gap
+            position_h = 0
+            max_height = 0
+        else
+            position_h = position_h + get_width(s) + l.gap
+        end
+    end
 end
