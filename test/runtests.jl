@@ -223,5 +223,5 @@ end
     #testCallbacks04()
 end
 
-include("Interaction.jl");
-include("Line.jl");
+include("interaction_test.jl");
+include("line_test.jl");

@@ -1,5 +1,4 @@
 module Roassal
-#using Infiltrator
 
 # ------------------------------------
 # Graphic
@@ -31,6 +30,10 @@ export numberOfCallbacks, add_callback!, trigger_callback
 
 export highlightable
 export popup
+
+
+include("layouts.jl")
+
 # ------------------------------------
 """
 Shape definitions
@@ -226,9 +229,9 @@ function rshow(canvas::RCanvas)
     redraw(canvas, c)
 
     signal_connect(win, "key-press-event") do widget, event
-        println("You pressed key ", event.keyval)
+        #println("You pressed key ", event.keyval)
         step = 20
-        big_step = step * 3
+        big_step = step * 5
         event.keyval == 65361 && translate_by!(canvas, step, 0)
         event.keyval == 65363 && translate_by!(canvas, -step, 0)
         event.keyval == 65364 && translate_by!(canvas, 0, -step)
@@ -454,7 +457,7 @@ function highlightable(shape::Shape)
 end
 
 function reset_highlight()
-    highlighted_shapes = Dict{Shape,RColor}()
+    global highlighted_shapes = Dict{Shape,RColor}()
 end
 
 # ------------------------------------
