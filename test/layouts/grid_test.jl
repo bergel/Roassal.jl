@@ -11,7 +11,7 @@
     @test all(b -> pos(b) == (0, 0), boxes)
 
     apply(GridLayout(), c)
-    @test pos(boxes[1]) == (0, 0)
+    @test pos(boxes[1]) == (5.0, 5.0)
     @test all(b -> pos(b) != (0, 0), boxes[2:end])
 end
 

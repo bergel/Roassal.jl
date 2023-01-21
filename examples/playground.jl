@@ -93,7 +93,7 @@ end
 function example07()
     c = RCanvas()
     for i in 1:10
-        add!(c, RBox(; size = i * 10))
+        add!(c, RBox(; size = i * 10, color=RColor(i/10, i/10, i/10)))
     end
     apply(GridLayout(), c)
     rshow(c)
@@ -101,5 +101,6 @@ end
 
 example07()
 
-print("Press Enter to exit")
+#= print("Press Enter to exit")
 readline()
+ =#

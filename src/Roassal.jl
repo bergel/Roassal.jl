@@ -7,7 +7,7 @@ using Gtk, Graphics
 # Modeling
 export Shape
 export pos, extent, compute_encompassing_rectangle
-export translate_to!, extent!, translate_by!
+export translate_to!, translate_topleft_to!, extent!, translate_by!
 export get_width, get_height
 
 export RBox, get_color, set_color!
@@ -109,6 +109,15 @@ end
 function translate_to!(s::BoundedShape, x::Number, y::Number)
     s.x = x
     s.y = y
+end
+
+function translate_topleft_to!(s::BoundedShape, p::Tuple{Number, Number})
+    translate_topleft_to!(s, p[1], p[2])
+end
+
+function translate_topleft_to!(s::BoundedShape, x::Number, y::Number)
+    s.x = x + s.width / 2
+    s.y = y + s.height / 2
 end
 
 function translate_by!(s::BoundedShape, p::Tuple{Number, Number})

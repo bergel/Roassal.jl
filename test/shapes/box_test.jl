@@ -15,7 +15,6 @@
 
 end
 
-
 @testset "Encompassing" begin
     aColor = RColor()
     box1 = RBox(color=aColor)
@@ -41,5 +40,18 @@ end
     @test get_width(RBox(; width=10, height= 5)) == 10
     @test get_height(RBox(; width=10, height= 5)) == 5
     @test extent(RBox(; width=10, height=5)) == (10, 5)
+end
 
+@testset "Translate" begin
+    @testset "Default" begin
+        b = RBox(; width=50, height=30)
+        translate_to!(b, (15, 10))
+        @test pos(b) == (15, 10)
+    end
+
+    @testset "Top-left" begin
+        b = RBox(; width=50, height=30)
+        translate_topleft_to!(b, (15, 10))
+        @test pos(b) == (50/2 + 15, 30/2 + 10)
+    end
 end
