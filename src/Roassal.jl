@@ -185,7 +185,7 @@ RCanvas() = RCanvas([], [], RBox(), 0, 0)
 
 number_of_shapes(c::RCanvas) = length(c.shapes)
 
-function add!(c::RCanvas, s::Shape)
+function add!(c::RCanvas, s::T) where T <: Shape
     push!(c.shapes, s)
     s.canvas = c
 end
