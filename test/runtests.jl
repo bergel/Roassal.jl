@@ -27,4 +27,5 @@ end
     include("layouts/grid_test.jl");
     include("layouts/flow_test.jl");
     include("layouts/line_layout_test.jl");
+    include("layouts/force_based_test.jl")
 end

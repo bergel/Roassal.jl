@@ -1,15 +1,15 @@
 export Layout
-export FlowLayout, HorizontalLineLayout, GridLayout, VerticalLineLayout
+export FlowLayout, ForceBasedLayout, HorizontalLineLayout, GridLayout, VerticalLineLayout
 export apply
 
 abstract type Layout end
 
 function apply(l::Layout, canvas::RCanvas)
-    apply(l, get_shapes(canvas))
+    apply(l, convert(Vector{BoundedShape}, get_nodes(canvas)))
 end
 
-function apply(::Layout, shapes::Vector{Shape})
-    error("Application not defined")
+function apply(l::Layout, shapes::Vector{BoundedShape})
+    error("Application not defined for $(typeof(l))")
 end
 
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
@@ -24,7 +24,7 @@ struct GridLayout <: Layout
     GridLayout() = GridLayout(5, -1)
 end
 
-function _get_line_count(l::GridLayout, shapes::Vector{T}) where T <: Shape
+function _get_line_count(l::GridLayout, shapes::Vector{T}) where T <: BoundedShape
     l.line_count > 0 && return l.line_count
 
     nb_shapes = length(shapes)
@@ -33,7 +33,7 @@ function _get_line_count(l::GridLayout, shapes::Vector{T}) where T <: Shape
     return width
 end
 
-function apply(l::GridLayout, shapes::Vector{Shape})
+function apply(l::GridLayout, shapes::Vector{BoundedShape})
     lc = _get_line_count(l, shapes)
 
     local position_h = 0
@@ -64,7 +64,7 @@ struct HorizontalLineLayout <: Layout
     HorizontalLineLayout() = HorizontalLineLayout(5)
 end
 
-function apply(l::HorizontalLineLayout, shapes::Vector{Shape})
+function apply(l::HorizontalLineLayout, shapes::Vector{BoundedShape})
     g = GridLayout(l.gap, length(shapes))
     apply(g, shapes)
 end
@@ -80,7 +80,7 @@ struct VerticalLineLayout <: Layout
     VerticalLineLayout() = VerticalLineLayout(5)
 end
 
-function apply(l::VerticalLineLayout, shapes::Vector{Shape})
+function apply(l::VerticalLineLayout, shapes::Vector{BoundedShape})
     g = GridLayout(l.gap, 1)
     apply(g, shapes)
 end
@@ -102,7 +102,7 @@ function _compute_max_width(l::FlowLayout, shapes::Vector{T}) where T <: Shape
     return total_width_shapes / 5
 end
 
-function apply(l::FlowLayout, shapes::Vector{Shape})
+function apply(l::FlowLayout, shapes::Vector{BoundedShape})
     if l.max_width == -1
         max_width = _compute_max_width(l, shapes)
     else
@@ -124,4 +124,97 @@ function apply(l::FlowLayout, shapes::Vector{Shape})
             position_h = position_h + get_width(s) + l.gap
         end
     end
+end
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+struct ForceBasedLayout <: Layout
+    iterations::Int64
+    C::Number
+    K::Number
+    gravity::Tuple{Number,Number}
+    friction::Number
+    #theta::Number
+    ForceBasedLayout() = new(50, 0.2, 1.0)
+    ForceBasedLayout(C::Number, K::Number) = new(50, C, K)
+    ForceBasedLayout(iterations::Int64) = new(iterations, 0.2, 1.0)
+end
+
+function _before_apply(l::ForceBasedLayout, shapes::Vector{BoundedShape})
+    apply(GridLayout(), shapes)
+end
+
+function _after_apply(l::ForceBasedLayout, shapes::Vector{BoundedShape})
+end
+
+function _step_node_repulsion(l::ForceBasedLayout, shapes::Vector{BoundedShape})
+    repulsions = Dict{Shape,Tuple{Number,Number}}()
+    for s in shapes
+        repulsions[s] = (0.0, 0.0)
+    end
+
+    for s1 in shapes
+        for s2 in shapes
+            s1 == s2 && continue
+            d = pos(s1) .- pos(s2)
+            distance = sqrt(d[1]*d[1] + d[2]*d[2])
+            norm = d ./ distance
+            r = -1 * l.C * l.K * l.K / distance
+            repulsions[s1] = repulsions[s1] .+ (-1*norm[1]*r, -1*norm[2]*r)
+            repulsions[s2] = repulsions[s2] .+ (   norm[1]*r,    norm[2]*r)
+        end
+    end
+    return repulsions
+end
+
+function _step_edge_forces(l::ForceBasedLayout, lines::Vector{RLine})
+    attractions = Dict{RLine,Number}()
+    for line in lines
+        dist = pos(line.to) .- pos(line.from)
+        d_tmp = 30 - sqrt(dist[1]*dist[1] + dist[2]*dist[2])
+        att = d_tmp*d_tmp / l.K
+        attractions[line] = d_tmp > 0 ? att : att * -1
+    end
+
+    attractions_per_shape = Dict{Shape,Tuple{Number,Number}}()
+    for line in lines
+        attractions_per_shape[line.from] = (0.0, 0.0)
+        attractions_per_shape[line.to] = (0.0, 0.0)
+    end
+    for line in lines
+        d = (pos(line.to) .- pos(line.from))
+        attractions_per_shape[line.from] = attractions_per_shape[line.from] .+ (d .* attractions[line] .* -1)
+        attractions_per_shape[line.to] = attractions_per_shape[line.to] .+ (d .* attractions[line])
+    end
+
+    return attractions_per_shape
+end
+
+function _step(l::ForceBasedLayout, shapes::Vector{BoundedShape}, lines::Vector{RLine})
+    attractions = _step_edge_forces(l, lines)
+    #_step_gravity_force(l, shapes, lines)
+
+    repulsions = _step_node_repulsion(l, shapes)
+
+    # applying translation
+    for s in shapes
+        translate_by!(s, repulsions[s])
+        haskey(attractions, s) && translate_by!(s, attractions[s])
+    end
+end
+
+function apply(l::ForceBasedLayout, shapes::Vector{BoundedShape})
+    lines = Vector{RLine}()
+    for s in shapes
+        !(s isa RLine) && push!(lines, s.outgoing_edges...)
+    end
+
+    apply(l, shapes, lines)
+end
+
+function apply(l::ForceBasedLayout, shapes::Vector{BoundedShape}, lines::Vector{RLine})
+    _before_apply(l, shapes)
+    for _ in 1:l.iterations
+        _step(l, shapes, lines)
+    end
+    _after_apply(l, shapes)
 end

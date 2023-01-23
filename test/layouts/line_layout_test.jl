@@ -9,7 +9,7 @@
     @test all(b -> pos(b) == (0, 0), get_shapes(c))
 
     apply(HorizontalLineLayout(), c)
-    @test map(pos, get_shapes(c)) == [(5.0, 5.0), (20.0, 5.0), (35.0, 5.0), (50.0, 5.0)]
+    @test map(pos, get_nodes(c)) == [(5.0, 5.0), (20.0, 5.0), (35.0, 5.0), (50.0, 5.0)]
 end
 
 @testset "Vertical line" begin
@@ -20,5 +20,5 @@ end
     end
 
     apply(VerticalLineLayout(), c)
-    @test map(pos, get_shapes(c)) == [(5.0, 5.0), (5.0, 20.0), (5.0, 35.0), (5.0, 50.0)]
+    @test map(pos, get_nodes(c)) == [(5.0, 5.0), (5.0, 20.0), (5.0, 35.0), (5.0, 50.0)]
 end

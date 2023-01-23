@@ -99,7 +99,45 @@ function example07()
     rshow(c)
 end
 
-example07()
+
+function example08()
+    c = RCanvas()
+    for i in 1:10
+        add!(c, RBox(; color=RColor(i/10, i/10, i/10)))
+    end
+    apply(ForceBasedLayout(), c)
+    rshow(c)
+end
+
+function example09()
+    c = RCanvas()
+    add!(c, RBox(; color=RColor(1.0, 0, 0)))
+    add!(c, RBox(; color=RColor(0, 1.0, 0)))
+    add!(c, RBox(; color=RColor(0, 0, 1.0)))
+    boxes = get_shapes(c)
+
+    add!(c, RLine(boxes[1], boxes[2]))
+    add!(c, RLine(boxes[1], boxes[3]))
+    add!(c, RLine(boxes[2], boxes[3]))
+
+    apply(ForceBasedLayout(1), c) ; rshow(c)
+end
+
+function example10()
+    c = RCanvas()
+    add!(c, RBox(; color=RColor(1.0, 0, 0)))
+    add!(c, RBox(; color=RColor(0, 1.0, 0)))
+    add!(c, RBox(; color=RColor(0, 0, 1.0)))
+    boxes = get_shapes(c)
+
+    add!(c, RLine(boxes[1], boxes[2]))
+    add!(c, RLine(boxes[1], boxes[3]))
+    #add!(c, RLine(boxes[2], boxes[3]))
+
+    apply(ForceBasedLayout(1), c) ; rshow(c)
+end
+
+example09()
 
 #= print("Press Enter to exit")
 readline()

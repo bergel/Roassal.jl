@@ -90,3 +90,21 @@ end
     @test get_shapes(canvas)[1] === box1
     @test get_shapes(canvas)[2] === box2
 end
+
+@testset "Nodes and Shapes" begin
+    c = RCanvas()
+    add!(c, RBox(; color=RColor(1.0, 0, 0)))
+    add!(c, RBox(; color=RColor(0, 1.0, 0)))
+    add!(c, RBox(; color=RColor(0, 0, 1.0)))
+
+    boxes = get_shapes(c)
+    add!(c, RLine(boxes[1], boxes[2]))
+    add!(c, RLine(boxes[1], boxes[3]))
+    add!(c, RLine(boxes[2], boxes[3]))
+
+    @test length(get_shapes(c)) == 6
+    @test length(get_nodes(c)) == 3
+    @test all(n -> n isa RBox, get_nodes(c))
+    @test length(get_edges(c)) == 3
+    @test all(n -> n isa RLine, get_edges(c))
+end
