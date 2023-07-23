@@ -11,7 +11,7 @@ export translate_to!, translate_topleft_to!, extent!, translate_by!
 export get_width, get_height
 
 export RBox, get_color, set_color!
-export RCircle
+export RCircle, set_size!
 
 export RText
 
@@ -83,6 +83,7 @@ end
 RCircle(;color=RColor(),
         x=0, y=0,
         width=10, height=10) = RCircle(color, x, y, width, height, [], nothing, [], [])
+
 function set_size!(circle::RCircle, size::Float64)
     circle.width = size
     circle.height = size
@@ -164,10 +165,11 @@ mutable struct RText <: BoundedShape
     y
     width
     height
+    canvas
 end
 
 function RText(value::String; color=RColor_BLUE)
-    return RText(value, color, 0, 0, 0, 0)
+    return RText(value, color, 0, 0, 0, 0, nothing)
 end
 
 # ------------------------------------
@@ -241,9 +243,14 @@ function translate_by!(canvas::RCanvas, delta_X::Int64, delta_Y::Int64)
     canvas.offset_Y = canvas.offset_Y + delta_Y
 end
 
+global previous_win = nothing
+
 function rshow(canvas::RCanvas)
     c = @GtkCanvas()
+    !isnothing(previous_win) && destroy(previous_win)
+
     win = GtkWindow(c, "Roassal")
+    global previous_win = win
     redraw(canvas, c)
 
     signal_connect(win, "key-press-event") do widget, event
@@ -353,6 +360,13 @@ function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::
     fill(ctx)
 end
 
+function rendererVisitor(text::RText, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=0, offset_y::Int64=0)
+    ctx = getgc(gtk)
+    _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
+    label = GtkLabel("Hello")
+    push!(gtk, label)
+end
+
 function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=0, offset_y::Int64=0)
     ctx = getgc(gtk)
 
@@ -383,6 +397,7 @@ function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Int6
 end
 
 
+
 function offset_from_canvas_to_screen(gtk::GtkCanvas)
     return (width(gtk) / 2, height(gtk) / 2)
 end
@@ -397,7 +412,7 @@ Callbacks
 """
 mutable struct Callback
     name::Symbol
-    f
+    f::Function
 end
 
 function add_callback!(shape_or_canvas_under_mouse, callback::Callback)
