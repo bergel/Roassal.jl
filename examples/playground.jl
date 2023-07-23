@@ -105,8 +105,7 @@ function example08()
     for i in 1:10
         add!(c, RBox(; color=RColor(i/10, i/10, i/10)))
     end
-    apply(ForceBasedLayout(), c)
-    rshow(c)
+    apply(ForceBasedLayout(), c) ; rshow(c)
 end
 
 function example09()
@@ -137,7 +136,37 @@ function example10()
     apply(ForceBasedLayout(1), c) ; rshow(c)
 end
 
-example09()
+function example11()
+    c = RCanvas()
+    for x in 0.0:0.1:1.0
+        for y in 0.0:0.1:1.0
+            add!(c, popup(RBox(; color=RColor(x, y, 0.5))))
+        end
+    end
+    apply(GridLayout(2, 10), c) ; rshow(c)
+end
+
+function example12()
+    # DOES NOT WORK :( TEXT IS NOT YET SUPPORTED
+    c = RCanvas()
+    #add!(c, RText("Hello"))
+    rshow(c)
+end
+
+function example13()
+    c = RCanvas()
+    nb_circles = 100
+    for i in 1:nb_circles
+        circle = RCircle(; color=RColor(0.7, 0, 0))
+        add!(c, circle)
+        set_size!(circle, 20 * sin(i / nb_circles * 3.1415))
+    end
+    apply(GridLayout(2, 10), c) ; rshow(c)
+
+    rshow(c)
+end
+
+example11()
 
 #= print("Press Enter to exit")
 readline()
