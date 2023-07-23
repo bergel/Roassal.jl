@@ -86,6 +86,8 @@ function apply(l::VerticalLineLayout, shapes::Vector{BoundedShape})
 end
 # -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
 
+# https://faculty.washington.edu/joelross/courses/archive/s13/cs261/lab/k/
+
 struct FlowLayout <: Layout
     gap::Int64
     max_width::Int64
@@ -137,6 +139,7 @@ struct ForceBasedLayout <: Layout
     ForceBasedLayout() = new(50, 0.2, 1.0)
     ForceBasedLayout(C::Number, K::Number) = new(50, C, K)
     ForceBasedLayout(iterations::Int64) = new(iterations, 0.2, 1.0)
+    ForceBasedLayout(iterations::Int64, C::Number, K::Number) = new(iterations, C, K)
 end
 
 function _before_apply(l::ForceBasedLayout, shapes::Vector{BoundedShape})
@@ -159,8 +162,8 @@ function _step_node_repulsion(l::ForceBasedLayout, shapes::Vector{BoundedShape})
             distance = sqrt(d[1]*d[1] + d[2]*d[2])
             norm = d ./ distance
             r = -1 * l.C * l.K * l.K / distance
-            repulsions[s1] = repulsions[s1] .+ (-1*norm[1]*r, -1*norm[2]*r)
-            repulsions[s2] = repulsions[s2] .+ (   norm[1]*r,    norm[2]*r)
+            repulsions[s1] = repulsions[s1] .- (norm[1]*r, norm[2]*r)
+            repulsions[s2] = repulsions[s2] .+ (norm[1]*r, norm[2]*r)
         end
     end
     return repulsions
@@ -182,8 +185,10 @@ function _step_edge_forces(l::ForceBasedLayout, lines::Vector{RLine})
     end
     for line in lines
         d = (pos(line.to) .- pos(line.from))
-        attractions_per_shape[line.from] = attractions_per_shape[line.from] .+ (d .* attractions[line] .* -1)
-        attractions_per_shape[line.to] = attractions_per_shape[line.to] .+ (d .* attractions[line])
+        distance = sqrt(d[1]*d[1] + d[2]*d[2])
+        norm = d ./ distance
+        attractions_per_shape[line.from] = attractions_per_shape[line.from] .+ (norm .* attractions[line] .* -1)
+        attractions_per_shape[line.to] = attractions_per_shape[line.to] .+ (norm .* attractions[line])
     end
 
     return attractions_per_shape
@@ -194,6 +199,9 @@ function _step(l::ForceBasedLayout, shapes::Vector{BoundedShape}, lines::Vector{
     #_step_gravity_force(l, shapes, lines)
 
     repulsions = _step_node_repulsion(l, shapes)
+
+    println("DEB1: attractions=$(values(attractions))")
+    println("DEB2: repulsions=$(values(repulsions))")
 
     # applying translation
     for s in shapes
