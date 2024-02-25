@@ -140,7 +140,7 @@ function example11()
     c = RCanvas()
     for x in 0.0:0.1:1.0
         for y in 0.0:0.1:1.0
-            add!(c, popup(RBox(; color=RColor(x, y, 0.5))))
+            add!(c, RBox(; color=RColor(x, y, 0.5)))
         end
     end
     apply(GridLayout(2, 10), c) ; rshow(c)
@@ -157,16 +157,29 @@ function example13()
     c = RCanvas()
     nb_circles = 100
     for i in 1:nb_circles
-        circle = RCircle(; color=RColor(0.7, 0, 0))
+        circle = RCircle(; color=RColor(0.7, 0, 0), model=i)
         add!(c, circle)
         set_size!(circle, 20 * sin(i / nb_circles * 3.1415))
     end
     apply(GridLayout(2, 10), c) ; rshow(c)
-
+    highlightable(c)
     rshow(c)
 end
 
-example11()
+function example14()
+    c = RCanvas()
+    circle = RCircle(; height=50, width=50)
+    add!(c, circle)
+
+    function cb()
+        set_color!(circle, random_color())
+        translate_by!(circle, 5, 4)
+    end
+    add_callback!(circle, Callback(:mouseEnter, cb))
+    rshow(c)
+end
+
+# example11()
 
 #= print("Press Enter to exit")
 readline()
