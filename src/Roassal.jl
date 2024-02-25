@@ -395,7 +395,7 @@ function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Int6
     set_line_width(ctx, 2.0)
     stroke(ctx)
 
-    println("DEBUG: $color $from_position $to_position")
+    # println("DEBUG: $color $from_position $to_position")
 
 #=     fill(ctx)
     paint(cr)
