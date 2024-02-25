@@ -179,6 +179,27 @@ function example14()
     rshow(c)
 end
 
+
+function example15()
+    c = RCanvas()
+    s1 = RCircle()
+    s2 = RCircle()
+
+    add!(c, s1)
+    add!(c, s2)
+
+    line = RLine(s1, s2)
+    add!(c, line)
+
+    translate_to!(s2, 50, 30)
+    rshow(c)
+
+    add_callback!(s1, Callback(:mouseEnter, () -> translate_by!(s1, 10, 10)))
+    add_callback!(s2, Callback(:mouseEnter, () -> translate_by!(s2, 10, -10)))
+
+end
+
+
 # example11()
 
 #= print("Press Enter to exit")
