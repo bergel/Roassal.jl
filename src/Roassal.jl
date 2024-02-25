@@ -10,6 +10,8 @@ export pos, extent, compute_encompassing_rectangle
 export translate_to!, translate_topleft_to!, extent!, translate_by!
 export get_width, get_height
 
+export random_color
+
 export RBox, get_color, set_color!
 export RCircle, set_size!
 
@@ -29,6 +31,8 @@ export get_shapes, get_nodes, get_edges
 export Callback
 export numberOfCallbacks, add_callback!, trigger_callback
 
+export get_model
+
 export highlightable
 export popup
 
@@ -38,6 +42,14 @@ Shape definitions
 """
 abstract type Shape end
 abstract type BoundedShape <: Shape end
+
+
+get_model(shape::Shape) = shape.model
+
+function set_model!(shape::Shape, value::Any)
+    shape.model = value
+end
+
 # ------------------------------------
 """
 Model a box
@@ -52,22 +64,21 @@ mutable struct RBox <: BoundedShape
     canvas
     outgoing_edges
     incoming_edges
+    model
 end
 
 function RBox(;color=RColor(),
-        x=0, y=0,
-        width=10, height=10, size::Int64=0)
+        x::Int64=0, y::Int64=0,
+        width::Int64=10, height::Int64=10, size::Int64=0, model=nothing)
 
-    size > 0 && return RBox(color, x, y, size, size, [], nothing, [], [])
-    return RBox(color, x, y, width, height, [], nothing, [], [])
+    size > 0 && return RBox(color, x, y, size, size, [], nothing, [], [], model)
+    return RBox(color, x, y, width, height, [], nothing, [], [], model)
 end
 
 pos(s::BoundedShape) = (s.x, s.y)
 extent(s::BoundedShape) = (s.width, s.height)
 get_width(s::BoundedShape) = extent(s)[1]
 get_height(s::BoundedShape) = extent(s)[2]
-
-
 
 mutable struct RCircle <: BoundedShape
     color
@@ -79,16 +90,17 @@ mutable struct RCircle <: BoundedShape
     canvas
     outgoing_edges
     incoming_edges
+    model
 end
 RCircle(;color=RColor(),
         x=0, y=0,
-        width=10, height=10) = RCircle(color, x, y, width, height, [], nothing, [], [])
+        width=10, height=10,
+        model=nothing) = RCircle(color, x, y, width, height, [], nothing, [], [], model)
 
 function set_size!(circle::RCircle, size::Float64)
     circle.width = size
     circle.height = size
 end
-
 
 function set_color!(s::Shape, color)
     s.color = color
@@ -186,6 +198,8 @@ RColor() = RColor(0.8, 0.8, 0.8)
 RColor_BLUE = RColor(0, 0, 1)
 RColor_GREEN = RColor(0, 1, 0)
 RColor_RED = RColor(1, 0, 0)
+
+random_color()=RColor(rand(), rand(), rand())
 
 # ------------------------------------
 """
@@ -473,7 +487,7 @@ highlighted_shapes = Dict{Shape,RColor}()
 function highlightable(shape::Shape)
     function recordColor()
         global highlighted_shapes[shape] = get_color(shape)
-        #print("Recorded! $shape \n")
+        println("Highlight: $(shape.model)")
         set_color!(shape, RColor_BLUE)
     end
     function restoreColor()
@@ -494,25 +508,26 @@ function reset_highlight()
 end
 
 # ------------------------------------
-last_popup = nothing
-function popup(shape::Shape)
-    function addPopup()
-        removePopup()
-        global last_popup = RBox(width=40, height=15)
-        add!(shape.canvas, last_popup)
-        translate_to!(last_popup, pos(shape) .- (20, 20))
-    end
-    function removePopup()
-        if(!isnothing(last_popup))
-            remove_shape!(shape.canvas, last_popup)
-            global last_popup = nothing
-        end
-    end
+# last_popup = nothing
+# # Not sure we need it for now. Text support is necessary.
+# function popup(shape::Shape)
+#     function addPopup()
+#         removePopup()
+#         global last_popup = RBox(width=40, height=15)
+#         add!(shape.canvas, last_popup)
+#         translate_to!(last_popup, pos(shape) .- (20, 20))
+#     end
+#     function removePopup()
+#         if(!isnothing(last_popup))
+#             remove_shape!(shape.canvas, last_popup)
+#             global last_popup = nothing
+#         end
+#     end
 
-    add_callback!(shape, Callback(:mouseEnter, addPopup))
-    add_callback!(shape, Callback(:mouseLeave, removePopup))
-    return shape
-end
+#     add_callback!(shape, Callback(:mouseEnter, addPopup))
+#     add_callback!(shape, Callback(:mouseLeave, removePopup))
+#     return shape
+# end
 # ------------------------------------
 
 
