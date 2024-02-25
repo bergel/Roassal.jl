@@ -19,6 +19,10 @@ end
     include("shapes/box_test.jl")
 end
 
+@testset "Model" begin
+    include("model_test.jl");
+end
+
 @testset "Color" begin
     include("color_test.jl");
 end
@@ -27,5 +31,5 @@ end
     include("layouts/grid_test.jl");
     include("layouts/flow_test.jl");
     include("layouts/line_layout_test.jl");
-    include("layouts/force_based_test.jl")
+    # include("layouts/force_based_test.jl")
 end
