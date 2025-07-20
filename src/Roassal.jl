@@ -27,7 +27,7 @@ export rendererVisitor
 export get_shape_at_position
 export offset_from_canvas_to_screen, offsetFromScreenToCanvas
 export get_shapes, get_nodes, get_edges
-export center!, refresh, get_shape
+export center!, refresh, get_shape, push_lines_back
 
 export Callback
 export numberOfCallbacks, add_callback!, trigger_callback
@@ -177,6 +177,7 @@ end
 function compute_encompassing_rectangle(line::RLine)
     return (0, 0, 0, 0)
 end
+
 # ------------------------------------
 
 mutable struct RText <: BoundedShape
@@ -276,6 +277,15 @@ function translate_by!(canvas::RCanvas, delta_X::Number, delta_Y::Number)
     canvas.offset_X = canvas.offset_X + delta_X
     canvas.offset_Y = canvas.offset_Y + delta_Y
     return canvas
+end
+
+function push_lines_back(c::RCanvas)
+    # This is a workaround to ensure that lines are drawn on top of boxes
+    # and circles, which are added after the lines.
+    all_lines = filter(s -> s isa RLine, c.shapes)
+    all_shapes = filter(s -> !(s isa RLine), c.shapes)
+    c.shapes = all_lines
+    append!(c.shapes, all_shapes)
 end
 
 global previous_win = nothing

@@ -215,11 +215,11 @@ function displaying_graph()
     end
 
     add!(c, RLine(get_shapes(c)[1], get_shapes(c)[2]))
-
+    push_lines_back(c)
     rshow(c)
 end
 
-function chart()
+function mosaic()
     c = RCanvas()
     step_count = 1000
     for i in 1:step_count
