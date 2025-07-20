@@ -356,9 +356,14 @@ function rshow(
     if !isempty(canvas.animations)
         for a in canvas.animations
             @async begin
-                while true
-                    a()
+                while a.is_running
+                    a.callback()
                     sleep(0.1)
+                    refresh(canvas)
+                    if (now() - a.start_time).value / 1e9 > a.duration
+                        a.is_running = false
+                        break
+                    end
                 end
             end
         end

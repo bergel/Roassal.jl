@@ -2,14 +2,17 @@
 # Animations
 
 using Dates
-struct Animation
+
+export Animation, add!, oscillate!
+
+mutable struct Animation
     start_time::DateTime
     duration::Number
     callback::Function
     is_running::Bool
 end
 
-function Animation(callback::Function, duration::Number)
+function Animation(callback::Function, duration::Number=1.0)
     return Animation(now(), duration, callback, false)
 end
 
