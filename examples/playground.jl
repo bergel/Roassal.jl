@@ -199,8 +199,53 @@ function example15()
 
 end
 
+function displaying_graph()
+    points = [
+        (100, 160), (20, 40), (60, 20), (180, 100), (200, 40),
+        (60, 200), (80, 180), (40, 120), (140, 180), (140, 140),
+        (20, 160), (200, 160), (180, 60), (100, 120), (120, 80),
+        (100, 40), (20, 20), (60, 80), (180, 200), (160, 20)
+    ]
+
+    c = RCanvas()
+    for (x, y) in points
+        box = RCircle(; color=RColor(0, 1.0, 0))
+        translate_to!(box, x, y)
+        add!(c, box)
+    end
+
+    add!(c, RLine(get_shapes(c)[1], get_shapes(c)[2]))
+
+    rshow(c)
+end
+
+function chart()
+    c = RCanvas()
+    step_count = 1000
+    for i in 1:step_count
+        box = RCircle(; color=RColor(i/step_count, i/step_count, i/step_count))
+        translate_to!(box, i * 20, i * 20)
+        add!(c, box)
+    end
+    apply(FlowLayout(5, 500), c)
+    rshow(c)
+end
+
+function moving()
+    c = RCanvas()
+    box = RBox(; color=RColor(0.5, 0.5, 0.5))
+    add!(c, box)
+
+    rshow(c; center=false, resize=false)
+    for i in 1:100
+        translate_by!(box, 1, 1)
+        refresh(c)
+        sleep(0.05)
+    end
+end
 
 # example11()
+displaying_graph()
 
 #= print("Press Enter to exit")
 readline()

@@ -27,7 +27,7 @@ export rendererVisitor
 export get_shape_at_position
 export offset_from_canvas_to_screen, offsetFromScreenToCanvas
 export get_shapes, get_nodes, get_edges
-export center!
+export center!, refresh
 
 export Callback
 export numberOfCallbacks, add_callback!, trigger_callback
@@ -220,8 +220,9 @@ mutable struct RCanvas
     shapeBeingPointed
     offset_X::Number
     offset_Y::Number
+    host_window         # type of GtkCanvas
 end
-RCanvas() = RCanvas([], [], RBox(), 0, 0)
+RCanvas() = RCanvas([], [], RBox(), 0, 0, nothing)
 
 number_of_shapes(c::RCanvas) = length(c.shapes)
 
@@ -274,6 +275,9 @@ global previous_win = nothing
 function rshow(canvas::RCanvas; center::Bool = true, resize::Bool=true, max_window_size::Tuple{Number, Number}=(800, 600))
     c = @GtkCanvas()
     !isnothing(previous_win) && destroy(previous_win)
+
+    # We keep a reference to allow for refresh and animations
+    canvas.host_window = c
 
     win = GtkWindow(c, "Roassal")
     global previous_win = win
@@ -340,6 +344,11 @@ function rshow(canvas::RCanvas; center::Bool = true, resize::Bool=true, max_wind
     end
 
     show(c)
+end
+
+# Refresh the Roassal canvas, useful for animations
+function refresh(canvas::RCanvas)
+    isnothing(canvas.host_window) || redraw(canvas, canvas.host_window)
 end
 
 function get_shape_at_position(canvas::RCanvas, x::Number, y::Number)
