@@ -272,7 +272,14 @@ end
 
 global previous_win = nothing
 
-function rshow(canvas::RCanvas; center::Bool = true, resize::Bool=true, max_window_size::Tuple{Number, Number}=(800, 600))
+function rshow(
+    canvas::RCanvas
+    ;
+    center::Bool = true,
+    resize::Bool=true,
+    max_window_size::Tuple{Number, Number}=(800, 600),
+    min_window_size::Tuple{Number, Number}=(200, 200),
+)
     c = @GtkCanvas()
     !isnothing(previous_win) && destroy(previous_win)
 
@@ -286,8 +293,8 @@ function rshow(canvas::RCanvas; center::Bool = true, resize::Bool=true, max_wind
     center && center!(canvas, resize)
     if resize
         es = compute_encompassing_rectangle(get_shapes(canvas))
-        new_width = es[3] + 10
-        new_height = es[4] + 10
+        new_width = max(min(es[3] + 10, max_window_size[1]), min_window_size[1])
+        new_height = max(min(es[4] + 10, max_window_size[2]), min_window_size[2])
         resize!(win, round(Int, new_width), round(Int, new_height))
     end
 
