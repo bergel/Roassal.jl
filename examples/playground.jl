@@ -244,6 +244,17 @@ function moving()
     end
 end
 
+function oscillate()
+    c = RCanvas()
+    box = RBox(; color=RColor(0.5, 0.5, 0.5))
+    add!(c, box)
+
+    oscillate!(box, 2.0)
+
+    rshow(c; center=false, resize=false)
+
+end
+
 # example11()
 displaying_graph()
 
