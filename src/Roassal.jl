@@ -284,7 +284,7 @@ function rshow(canvas::RCanvas; center::Bool = true, resize::Bool=true, max_wind
         es = compute_encompassing_rectangle(get_shapes(canvas))
         new_width = es[3] + 10
         new_height = es[4] + 10
-        Gtk.resize!(win, round(Int, new_width), round(Int, new_height))
+        resize!(win, round(Int, new_width), round(Int, new_height))
     end
 
     signal_connect(win, "key-press-event") do widget, event
