@@ -27,6 +27,7 @@ export rendererVisitor
 export get_shape_at_position
 export offset_from_canvas_to_screen, offsetFromScreenToCanvas
 export get_shapes, get_nodes, get_edges
+export center!
 
 export Callback
 export numberOfCallbacks, add_callback!, trigger_callback
@@ -113,33 +114,31 @@ end
 function extent!(s::BoundedShape, width, height)
     s.width = width
     s.height = height
+    return s
 end
 
-function translate_to!(s::BoundedShape, p::Tuple{Number, Number})
-    translate_to!(s, p[1], p[2])
-end
+translate_to!(s::BoundedShape, p::Tuple{Number, Number}) =  translate_to!(s, p[1], p[2])
 
 function translate_to!(s::BoundedShape, x::Number, y::Number)
     s.x = x
     s.y = y
+    return s
 end
 
-function translate_topleft_to!(s::BoundedShape, p::Tuple{Number, Number})
-    translate_topleft_to!(s, p[1], p[2])
-end
+translate_topleft_to!(s::BoundedShape, p::Tuple{Number, Number}) = translate_topleft_to!(s, p[1], p[2])
 
 function translate_topleft_to!(s::BoundedShape, x::Number, y::Number)
     s.x = x + s.width / 2
     s.y = y + s.height / 2
+    return s
 end
 
-function translate_by!(s::BoundedShape, p::Tuple{Number, Number})
-    translate_by!(s, p[1], p[2])
-end
+translate_by!(s::BoundedShape, p::Tuple{Number, Number}) = translate_by!(s, p[1], p[2])
 
 function translate_by!(s::BoundedShape, dx::Number, dy::Number)
     s.x = s.x + dx
     s.y = s.y + dy
+    return s
 end
 
 # Return (x, y, w, h)
@@ -147,6 +146,16 @@ function compute_encompassing_rectangle(s::BoundedShape)
     x = s.x - (s.width / 2)
     y = s.y - (s.height / 2)
     return (x, y, s.width, s.height)
+end
+
+# Return (x, y, w, h)
+function compute_encompassing_rectangle(shapes::Vector{Shape})
+    es = map(compute_encompassing_rectangle, shapes)
+    topleft_x = minimum(t -> t[1], es)
+    topleft_y = minimum(t -> t[2], es)
+    bottomright_x = maximum(t -> t[1] + t[3], es)
+    bottomright_y = maximum(t -> t[2] + t[4], es)
+    return (topleft_x, topleft_y, bottomright_x, bottomright_y)
 end
 
 # ------------------------------------
@@ -209,8 +218,8 @@ mutable struct RCanvas
     shapes::Array{Shape}
     callbacks
     shapeBeingPointed
-    offset_X::Int64
-    offset_Y::Int64
+    offset_X::Number
+    offset_Y::Number
 end
 RCanvas() = RCanvas([], [], RBox(), 0, 0)
 
@@ -219,6 +228,7 @@ number_of_shapes(c::RCanvas) = length(c.shapes)
 function add!(c::RCanvas, s::T) where T <: Shape
     push!(c.shapes, s)
     s.canvas = c
+    return c
 end
 
 get_shapes(c::RCanvas) = c.shapes
@@ -239,33 +249,43 @@ function redraw(canvas::RCanvas, c::GtkCanvas)
     end
 end
 
-function translate_to!(canvas::RCanvas, new_position::Tuple{Int64,Int64})
-    translate_to!(canvas, new_position[1], new_position[2])
+function translate_to!(canvas::RCanvas, new_position::Tuple{Number,Number})
+    return translate_to!(canvas, new_position[1], new_position[2])
 end
 
-function translate_to!(canvas::RCanvas, new_X::Int64, new_Y::Int64)
+function translate_to!(canvas::RCanvas, new_X::Number, new_Y::Number)
     canvas.offset_X = new_X
     canvas.offset_Y = new_Y
+    return canvas
 end
 
-function translate_by!(canvas::RCanvas, delta::Tuple{Int64,Int64})
-    translate_by!(canvas, delta[1], delta[2])
+function translate_by!(canvas::RCanvas, delta::Tuple{Number,Number})
+    return translate_by!(canvas, delta[1], delta[2])
 end
 
-function translate_by!(canvas::RCanvas, delta_X::Int64, delta_Y::Int64)
+function translate_by!(canvas::RCanvas, delta_X::Number, delta_Y::Number)
     canvas.offset_X = canvas.offset_X + delta_X
     canvas.offset_Y = canvas.offset_Y + delta_Y
+    return canvas
 end
 
 global previous_win = nothing
 
-function rshow(canvas::RCanvas)
+function rshow(canvas::RCanvas; center::Bool = true, resize::Bool=true, max_window_size::Tuple{Number, Number}=(800, 600))
     c = @GtkCanvas()
     !isnothing(previous_win) && destroy(previous_win)
 
     win = GtkWindow(c, "Roassal")
     global previous_win = win
     redraw(canvas, c)
+
+    center && center!(canvas, resize)
+    if resize
+        es = compute_encompassing_rectangle(get_shapes(canvas))
+        new_width = es[3] + 10
+        new_height = es[4] + 10
+        resize!(win, round(Int, new_width), round(Int, new_height))
+    end
 
     signal_connect(win, "key-press-event") do widget, event
         #println("You pressed key ", event.keyval)
@@ -345,7 +365,7 @@ function rendererVisitor(canvas::RCanvas, gtk::GtkCanvas=GtkCanvas())
     end
 end
 
-function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=0, offset_y::Int64=0)
+function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
     encompassingRectangle = compute_encompassing_rectangle(box)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
@@ -359,7 +379,7 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=
     fill(ctx)
 end
 
-function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=0, offset_y::Int64=0)
+function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
 
@@ -374,14 +394,14 @@ function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::
     fill(ctx)
 end
 
-function rendererVisitor(text::RText, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=0, offset_y::Int64=0)
+function rendererVisitor(text::RText, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
     label = GtkLabel("Hello")
     push!(gtk, label)
 end
 
-function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Int64=0, offset_y::Int64=0)
+function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
 
     color = line.color
@@ -409,8 +429,6 @@ function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Int6
     set_source_rgb(ctx, color.r, color.g, color.b)
     fill(ctx) =#
 end
-
-
 
 function offset_from_canvas_to_screen(gtk::GtkCanvas)
     return (width(gtk) / 2, height(gtk) / 2)
@@ -455,6 +473,13 @@ end
 
 # ------------------------------------
 # Interactions
+
+function center!(canvas::RCanvas, resize::Bool=true)
+    e = compute_encompassing_rectangle(get_shapes(canvas))
+    translate_to!(canvas, -(e[1] + e[3])/2, -(e[2] + e[4])/2)
+
+end
+
 function highlightable(canvas::RCanvas)
     foreach(shape -> highlightable(shape), get_shapes(canvas))
 end
@@ -462,6 +487,7 @@ end
 function highlightable(shapes::Vector{Shape})
     foreach(shape -> highlightable(shape), shapes)
 end
+
 #=
 function highlightable(shape::Shape)
     oldColor = nothing

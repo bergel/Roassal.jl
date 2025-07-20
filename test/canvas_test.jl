@@ -1,3 +1,5 @@
+using Roassal: compute_encompassing_rectangle
+
 @testset "Offset" begin
     c = RCanvas()
     @test c.offset_X == 0
@@ -107,4 +109,17 @@ end
     @test all(n -> n isa RBox, get_nodes(c))
     @test length(get_edges(c)) == 3
     @test all(n -> n isa RLine, get_edges(c))
+end
+
+@testset "Encompassing rectangle" begin
+    c = RCanvas()
+    add!(c, translate_to!(RBox(), 10, 10))
+    add!(c, translate_to!(RBox(), 100, 10))
+    add!(c, translate_to!(RBox(), 10, 150))
+
+    @test compute_encompassing_rectangle(get_shapes(c)) == (5.0, 5.0, 105.0, 155.0)
+
+    center!(c)
+    @test c.offset_X == -55
+    @test c.offset_Y == -80
 end
