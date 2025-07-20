@@ -20,6 +20,21 @@ function add!(c::RCanvas, a::Animation)
     return c
 end
 
+function oscillate!(s::Shape, duration::Number=1.0)
+    function oscillate_callback()
+        t = (now() - s.start_time).value / 1e9
+        if t > duration
+            s.is_running = false
+            return
+        end
+        pos = get_pos(s)
+        translate_to!(s, pos .+ (sin(t * 2 * π / duration) * 5, 0))
+    end
+
+    add!(s.canvas, Animation(oscillate_callback, duration))
+    return s
+end
+
 # ------------------------------------
 # Interactions
 

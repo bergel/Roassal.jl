@@ -352,6 +352,17 @@ function rshow(
     end
 
     show(c)
+
+    if !isempty(canvas.animations)
+        for a in canvas.animations
+            @async begin
+                while true
+                    a()
+                    sleep(0.1)
+                end
+            end
+        end
+    end
 end
 
 function center!(canvas::RCanvas, resize::Bool=true)
