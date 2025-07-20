@@ -27,7 +27,7 @@ export rendererVisitor
 export get_shape_at_position
 export offset_from_canvas_to_screen, offsetFromScreenToCanvas
 export get_shapes, get_nodes, get_edges
-export center!, refresh
+export center!, refresh, get_shape
 
 export Callback
 export numberOfCallbacks, add_callback!, trigger_callback
@@ -236,6 +236,14 @@ get_shapes(c::RCanvas) = c.shapes
 get_nodes(c::RCanvas) = filter(s -> !(s isa RLine), get_shapes(c))
 get_edges(c::RCanvas) = filter(s -> s isa RLine, get_shapes(c))
 
+function get_shape(c::RCanvas, model::Any)
+    for s in c.shapes
+        if s.model == model
+            return s
+        end
+    end
+    return nothing
+end
 
 function redraw(canvas::RCanvas, c::GtkCanvas)
     @guarded draw(c) do widget
