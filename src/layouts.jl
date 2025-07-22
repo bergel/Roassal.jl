@@ -133,13 +133,17 @@ struct ForceBasedLayout <: Layout
     iterations::Int64
     C::Number
     K::Number
-    gravity::Tuple{Number,Number}
-    friction::Number
+    step_function::Function
+
+    # gravity::Tuple{Number,Number}
+    # friction::Number
+
     #theta::Number
-    ForceBasedLayout() = new(50, 0.2, 1.0)
+    ForceBasedLayout() = new(50, 0.2, 1.0, ()->nothing)
     ForceBasedLayout(C::Number, K::Number) = new(50, C, K)
     ForceBasedLayout(iterations::Int64) = new(iterations, 0.2, 1.0)
     ForceBasedLayout(iterations::Int64, C::Number, K::Number) = new(iterations, C, K)
+    ForceBasedLayout(step_function::Function) = new(50, 0.2, 1.0, step_function)
 end
 
 function _before_apply(l::ForceBasedLayout, shapes::Vector{BoundedShape})
@@ -208,6 +212,8 @@ function _step(l::ForceBasedLayout, shapes::Vector{BoundedShape}, lines::Vector{
         translate_by!(s, repulsions[s])
         haskey(attractions, s) && translate_by!(s, attractions[s])
     end
+
+    l.step_function()
 end
 
 function apply(l::ForceBasedLayout, shapes::Vector{BoundedShape})

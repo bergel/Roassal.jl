@@ -244,8 +244,34 @@ function moving()
     end
 end
 
+function animating_force_based()
+    c = RCanvas()
+    for _ in 1:100
+        add!(c, RBox())
+    end
+    rshow(c)
+    apply(ForceBasedLayout(()->begin refresh(c); sleep(0.01); end), c)
+end
+
+# function animating_force_based2()
+#     Random.seed!(42)
+#     c = RCanvas()
+#     for _ in 1:100
+#         add!(c, RBox())
+#     end
+#     all_boxes = copy(get_shapes(c))
+
+#     for _ in 1:1
+#         add!(c, RLine(rand(all_boxes), rand(all_boxes)))
+#     end
+
+#     rshow(c)
+#     apply(ForceBasedLayout(()->begin  center!(c); refresh(c); sleep(0.1); end), c)
+# end
+
 # example11()
 displaying_graph()
+# animating_force_based()
 
 #= print("Press Enter to exit")
 readline()
