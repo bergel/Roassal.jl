@@ -112,14 +112,40 @@ end
 end
 
 @testset "Encompassing rectangle" begin
+    @testset "Empty canvas" begin
+        c = RCanvas()
+        @test compute_encompassing_rectangle(get_shapes(c)) == (0.0, 0.0, 0.0, 0.0)
+    end
+
+    @testset "With shapes" begin
+        c = RCanvas()
+        add!(c, translate_to!(RBox(), 10, 10))
+        add!(c, translate_to!(RBox(), 100, 10))
+        add!(c, translate_to!(RBox(), 10, 150))
+
+        @test compute_encompassing_rectangle(get_shapes(c)) == (5.0, 5.0, 105.0, 155.0)
+
+        center!(c)
+        @test c.offset_X == -55
+        @test c.offset_Y == -80
+    end
+end
+
+@testset "RCanvas show" begin
     c = RCanvas()
-    add!(c, translate_to!(RBox(), 10, 10))
-    add!(c, translate_to!(RBox(), 100, 10))
-    add!(c, translate_to!(RBox(), 10, 150))
+    io = IOBuffer()
+    show(io, c)
+    @test String(take!(io)) == "RCanvas{ 0 shapes }"
 
-    @test compute_encompassing_rectangle(get_shapes(c)) == (5.0, 5.0, 105.0, 155.0)
+    add!(c, RBox())
+    io = IOBuffer()
+    show(io, c)
 
-    center!(c)
-    @test c.offset_X == -55
-    @test c.offset_Y == -80
+    @test String(take!(io)) == "RCanvas{ 1 shapes }"
+
+    add!(c, RBox())
+    io = IOBuffer()
+    show(io, c)
+
+    @test String(take!(io)) == "RCanvas{ 2 shapes }"
 end

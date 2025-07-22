@@ -17,6 +17,7 @@ end
 @testset "Shape" begin
     include("shapes/line_test.jl");
     include("shapes/box_test.jl")
+    include("shapes/show_test.jl");
 end
 
 @testset "Model" begin

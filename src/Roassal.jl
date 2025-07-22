@@ -76,6 +76,12 @@ function RBox(;color=RColor(),
     return RBox(color, x, y, width, height, [], nothing, [], [], model)
 end
 
+# Base.show(io::IO, b::RBox) = Base.show(io, MIME"text/plain", b)
+
+function Base.show(io::IO, b::RBox)
+    print(io, "RBox{ pos:$((b.x, b.y)), width: $(b.width), height: $(b.height), color:$(b.color), model:$(b.model) }")
+end
+
 pos(s::BoundedShape) = (s.x, s.y)
 extent(s::BoundedShape) = (s.width, s.height)
 get_width(s::BoundedShape) = extent(s)[1]
@@ -93,10 +99,25 @@ mutable struct RCircle <: BoundedShape
     incoming_edges
     model
 end
-RCircle(;color=RColor(),
-        x=0, y=0,
-        width=10, height=10,
-        model=nothing) = RCircle(color, x, y, width, height, [], nothing, [], [], model)
+
+function RCircle(;
+    color=RColor(),
+    x=0, y=0,
+    radius=10,
+    width=10,
+    height=10,
+    model=nothing,
+)
+    if radius > 0 && width == 0 && height == 0
+        width = radius * 2
+        height = radius * 2
+    end
+    return RCircle(color, x, y, width, height, [], nothing, [], [], model)
+end
+
+function Base.show(io::IO, c::RCircle)
+    print(io, "RCircle{ pos:$((c.x, c.y)), color:$(c.color), model:$(c.model) }")
+end
 
 function set_size!(circle::RCircle, size::Float64)
     circle.width = size
@@ -150,6 +171,9 @@ end
 
 # Return (x, y, w, h)
 function compute_encompassing_rectangle(shapes::Vector{Shape})
+    isempty(shapes) && return (0, 0, 0, 0)
+
+    # Compute the encompassing rectangle of all shapes
     es = map(compute_encompassing_rectangle, shapes)
     topleft_x = minimum(t -> t[1], es)
     topleft_y = minimum(t -> t[2], es)
@@ -223,8 +247,10 @@ mutable struct RCanvas
     offset_Y::Number
     host_window         # type of GtkCanvas
     animations::Vector
+    window_title::String
 end
-RCanvas() = RCanvas([], [], RBox(), 0, 0, nothing, [])
+RCanvas() = RCanvas("Roassal")
+RCanvas(window_title::String) = RCanvas([], [], RBox(), 0, 0, nothing, [], window_title)
 
 number_of_shapes(c::RCanvas) = length(c.shapes)
 
@@ -232,6 +258,12 @@ function add!(c::RCanvas, s::T) where T <: Shape
     push!(c.shapes, s)
     s.canvas = c
     return c
+end
+
+# Base.show(io::IO, c::RCanvas) = Base.show(io, MIME"text/plain", c)
+
+function Base.show(io::IO, c::RCanvas)
+    print(io, "RCanvas{ $(number_of_shapes(c)) shapes }")
 end
 
 get_shapes(c::RCanvas) = c.shapes
@@ -305,7 +337,7 @@ function rshow(
     # We keep a reference to allow for refresh and animations
     canvas.host_window = c
 
-    win = GtkWindow(c, "Roassal")
+    win = GtkWindow(c, canvas.window_title)
     global previous_win = win
     redraw(canvas, c)
 
