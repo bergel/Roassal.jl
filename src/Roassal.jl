@@ -222,8 +222,9 @@ mutable struct RCanvas
     offset_X::Number
     offset_Y::Number
     host_window         # type of GtkCanvas
+    animations::Vector
 end
-RCanvas() = RCanvas([], [], RBox(), 0, 0, nothing)
+RCanvas() = RCanvas([], [], RBox(), 0, 0, nothing, [])
 
 number_of_shapes(c::RCanvas) = length(c.shapes)
 
@@ -369,6 +370,30 @@ function rshow(
     end
 
     show(c)
+
+    if !isempty(canvas.animations)
+        @async begin
+            while !isempty(canvas.animations)
+                for a in canvas.animations
+                    if (now() - a.start_time).value / 1000 > a.duration
+                        a.is_running = false
+                    else
+                        a.callback(a)
+                    end
+
+                end
+                refresh(canvas)
+                sleep(0.001)  # Avoid busy waiting
+                canvas.animations = filter(a -> a.is_running, canvas.animations)
+            end
+        end
+    end
+end
+
+function center!(canvas::RCanvas, resize::Bool=true)
+    e = compute_encompassing_rectangle(get_shapes(canvas))
+    translate_to!(canvas, -(e[1] + e[3])/2, -(e[2] + e[4])/2)
+    return canvas
 end
 
 # Refresh the Roassal canvas, useful for animations
@@ -505,93 +530,7 @@ function trigger_callback(shape_or_canvas_under_mouse, name::Symbol, event=nothi
     end
 end
 
-# ------------------------------------
-# Interactions
-
-function center!(canvas::RCanvas, resize::Bool=true)
-    e = compute_encompassing_rectangle(get_shapes(canvas))
-    translate_to!(canvas, -(e[1] + e[3])/2, -(e[2] + e[4])/2)
-
-end
-
-function highlightable(canvas::RCanvas)
-    foreach(shape -> highlightable(shape), get_shapes(canvas))
-end
-
-function highlightable(shapes::Vector{Shape})
-    foreach(shape -> highlightable(shape), shapes)
-end
-
-#=
-function highlightable(shape::Shape)
-    oldColor = nothing
-    function recordOld()
-        oldColor = get_color(s)
-        set_color!(shape, RColor_BLUE)
-        print("Recorded!")
-        println(oldColor)
-    end
-    function giveOldColor()
-        println("mouse leave!")
-        set_color!(shape, oldColor)
-    end
-
-    #add_callback!(shape, Callback(:mouseEnter, (event, s) -> recordOld(s)))
-    #add_callback!(shape, Callback(:mouseLeave, (event, s) -> giveOldColor(s)))
-    add_callback!(shape, Callback(:mouseEnter, recordOld))
-    add_callback!(shape, Callback(:mouseLeave, giveOldColor))
-    return shape
-end =#
-
-highlighted_shapes = Dict{Shape,RColor}()
-function highlightable(shape::Shape)
-    function recordColor()
-        global highlighted_shapes[shape] = get_color(shape)
-        println("Highlight: $(shape.model)")
-        set_color!(shape, RColor_BLUE)
-    end
-    function restoreColor()
-        #println("mouse leave! $(haskey(highlighted_shapes, shape))\n")
-        if(haskey(highlighted_shapes, shape))
-            set_color!(shape, highlighted_shapes[shape])
-            delete!(highlighted_shapes, shape)
-        end
-    end
-
-    add_callback!(shape, Callback(:mouseEnter, recordColor))
-    add_callback!(shape, Callback(:mouseLeave, restoreColor))
-    return shape
-end
-
-function reset_highlight()
-    global highlighted_shapes = Dict{Shape,RColor}()
-end
-
-# ------------------------------------
-# last_popup = nothing
-# # Not sure we need it for now. Text support is necessary.
-# function popup(shape::Shape)
-#     function addPopup()
-#         removePopup()
-#         global last_popup = RBox(width=40, height=15)
-#         add!(shape.canvas, last_popup)
-#         translate_to!(last_popup, pos(shape) .- (20, 20))
-#     end
-#     function removePopup()
-#         if(!isnothing(last_popup))
-#             remove_shape!(shape.canvas, last_popup)
-#             global last_popup = nothing
-#         end
-#     end
-
-#     add_callback!(shape, Callback(:mouseEnter, addPopup))
-#     add_callback!(shape, Callback(:mouseLeave, removePopup))
-#     return shape
-# end
-# ------------------------------------
-
-
 include("layouts.jl")
-
+include("interactions.jl")
 
 end
