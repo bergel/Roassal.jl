@@ -354,17 +354,19 @@ function rshow(
     show(c)
 
     if !isempty(canvas.animations)
-        for a in canvas.animations
-            @async begin
-                while a.is_running
-                    a.callback()
-                    sleep(0.1)
-                    refresh(canvas)
-                    if (now() - a.start_time).value / 1e9 > a.duration
+        @async begin
+            while !isempty(canvas.animations)
+                for a in canvas.animations
+                    if (now() - a.start_time).value / 1000 > a.duration
                         a.is_running = false
-                        break
+                    else
+                        a.callback(a)
                     end
+
                 end
+                refresh(canvas)
+                sleep(0.001)  # Avoid busy waiting
+                canvas.animations = filter(a -> a.is_running, canvas.animations)
             end
         end
     end

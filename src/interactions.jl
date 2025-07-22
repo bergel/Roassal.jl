@@ -23,15 +23,31 @@ function add!(c::RCanvas, a::Animation)
     return c
 end
 
-function oscillate!(s::Shape, duration::Number=1.0)
-    function oscillate_callback()
-        t = (now() - s.start_time).value / 1e9
-        if t > duration
-            s.is_running = false
+function oscillate!(
+    s::Shape
+    ;
+    duration::Number=1.0, # seconds
+    distance::Number=50,
+    horizontal::Bool=true,
+    vertical::Bool=false,
+)
+    original_pos = pos(s)
+    function oscillate_callback(a)
+        # In seconds
+        running = (now() - a.start_time).value / 1000
+
+        if running > duration
+            a.is_running = false
             return
         end
-        pos = get_pos(s)
-        translate_to!(s, pos .+ (sin(t * 2 * π / duration) * 5, 0))
+        delta = distance * sin(running * 2 * π / duration)
+        if horizontal && vertical
+            translate_to!(s, original_pos .+ (delta, delta))
+        elseif horizontal
+            translate_to!(s, original_pos .+ (delta, 0))
+        elseif vertical
+            translate_to!(s, original_pos .+ (0, delta))
+        end
     end
 
     add!(s.canvas, Animation(oscillate_callback, duration))

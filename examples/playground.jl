@@ -246,13 +246,33 @@ end
 
 function oscillate()
     c = RCanvas()
-    box = RBox(; color=RColor(0.5, 0.5, 0.5))
-    add!(c, box)
+    box1 = RBox(; color=RColor(0.5, 0.5, 0.5))
+    add!(c, box1)
+    oscillate!(box1; duration=5.0, vertical=true, horizontal=true)
 
-    oscillate!(box, 2.0)
+    box2 = RBox(; color=RColor(0.5, 0.5, 0.5))
+    translate_to!(box2, 50, 50)
+    add!(c, box2)
+    oscillate!(box2; duration=5.0, vertical=true, horizontal=false)
 
     rshow(c; center=false, resize=false)
+end
 
+function oscillate2()
+    c = RCanvas()
+    add!(c, translate_to!(RCircle(),  0,  0))
+    add!(c, translate_to!(RCircle(), 50,  0))
+    add!(c, translate_to!(RCircle(), 50, 50))
+    add!(c, translate_to!(RCircle(),  0, 50))
+    circles = get_shapes(c)
+    foreach(c -> oscillate!(c; duration=5.0, vertical=true, horizontal=true), circles)
+
+    add!(c, RLine(circles[1], circles[2]))
+    add!(c, RLine(circles[2], circles[3]))
+    add!(c, RLine(circles[3], circles[4]))
+    add!(c, RLine(circles[4], circles[1]))
+
+    rshow(c)
 end
 
 # example11()
