@@ -105,7 +105,8 @@ function example08()
     for i in 1:10
         add!(c, RBox(; color=RColor(i/10, i/10, i/10)))
     end
-    apply(ForceBasedLayout(), c) ; rshow(c)
+    apply(ForceBasedLayout(), c)
+    rshow(c)
 end
 
 function example09()

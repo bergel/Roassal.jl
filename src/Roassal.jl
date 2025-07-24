@@ -104,8 +104,8 @@ function RCircle(;
     color=RColor(),
     x=0, y=0,
     radius=10,
-    width=10,
-    height=10,
+    width=0,
+    height=0,
     model=nothing,
 )
     if radius > 0 && width == 0 && height == 0
