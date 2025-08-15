@@ -13,7 +13,7 @@ export get_width, get_height
 export random_color
 
 export RBox, get_color, set_color!
-export RCircle, set_size!, bottom_center, top_center
+export RCircle, set_size!, bottom_center, top_center, is_intersecting
 
 export RText
 
