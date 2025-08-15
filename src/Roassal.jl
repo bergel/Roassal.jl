@@ -13,7 +13,7 @@ export get_width, get_height
 export random_color
 
 export RBox, get_color, set_color!
-export RCircle, set_size!
+export RCircle, set_size!, bottom_center, top_center
 
 export RText
 
@@ -167,6 +167,27 @@ function compute_encompassing_rectangle(s::BoundedShape)
     x = s.x - (s.width / 2)
     y = s.y - (s.height / 2)
     return (x, y, s.width, s.height)
+end
+
+function bottom_center(s::BoundedShape)
+    s = compute_encompassing_rectangle(s)
+    return (s[1] + s[3] / 2, s[2] + s[4])
+end
+
+function top_center(s::BoundedShape)
+    s = compute_encompassing_rectangle(s)
+    return (s[1] + s[3] / 2, s[2])
+end
+
+function is_intersecting(s1::BoundedShape, s2::BoundedShape)
+    # Check if two shapes intersect
+    r1 = compute_encompassing_rectangle(s1)
+    r2 = compute_encompassing_rectangle(s2)
+
+    return !(r1[1] + r1[3] < r2[1] ||  # r1 is left of r2
+             r1[1] > r2[1] + r2[3] ||  # r1 is right of r2
+             r1[2] + r1[4] < r2[2] ||  # r1 is above r2
+             r1[2] > r2[2] + r2[4])    # r1 is below r2
 end
 
 # Return (x, y, w, h)

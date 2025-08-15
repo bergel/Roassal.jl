@@ -22,6 +22,10 @@ end
     @test pos(box1) == (0,0)
     @test extent(box1) == (10,10)
     @test compute_encompassing_rectangle(box1) == (-5, -5, 10, 10)
+    @test get_width(box1) == 10
+    @test get_height(box1) == 10
+    @test bottom_center(box1) == (0, 5)
+    @test top_center(box1) == (0, -5)
 
     c = get_color(box1)
     @test c === aColor

@@ -1,4 +1,4 @@
-using Roassal: compute_encompassing_rectangle
+using Roassal: compute_encompassing_rectangle, is_intersecting
 
 @testset "Offset" begin
     c = RCanvas()
@@ -148,4 +148,22 @@ end
     show(io, c)
 
     @test String(take!(io)) == "RCanvas{ 2 shapes }"
+end
+
+@testset "BoundedShape intersection" begin
+    c = RCanvas()
+    s1 = RBox(; x=10, y=10, width=20, height=20, color=RColor(1.0, 0, 0))
+    s2 = RBox(; x=15, y=15, width=20, height=20, color=RColor(0, 1.0, 0))
+    s3 = RBox(; x=50, y=50, width=20, height=20, color=RColor(0, 0, 1.0))
+
+    add!(c, s1)
+    add!(c, s2)
+    add!(c, s3)
+
+    @test is_intersecting(s1, s2) == true
+    @test is_intersecting(s2, s1) == true
+    @test is_intersecting(s1, s3) == false
+    @test is_intersecting(s3, s1) == false
+    @test is_intersecting(s2, s3) == false
+    @test is_intersecting(s3, s2) == false
 end
