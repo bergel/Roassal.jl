@@ -413,7 +413,7 @@ function rshow(
         #Probably trigger_callback should indicates whether there has been some trigger.
         redraw(canvas, c)
         reveal(widget)
-        # println("refresh!!")
+        #println("refresh!!")
     end
 
     c.mouse.button1press = @guarded (widget, event) -> begin
