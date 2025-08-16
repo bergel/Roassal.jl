@@ -386,6 +386,16 @@ function rshow(
         redraw(canvas, c)
     end
 
+    signal_connect(win, "delete-event") do widget, event
+        # Remove all animations when the window is closed
+        for a in canvas.animations
+            a.is_running = false
+        end
+        canvas.animations = []
+        # Return FALSE to allow the default handler to proceed with window destruction
+        return false
+    end
+
     c.mouse.motion = @guarded (widget, event) -> begin
         offset = offsetFromScreenToCanvas(c)
         shape_or_canvas_under_mouse = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
@@ -403,7 +413,7 @@ function rshow(
         #Probably trigger_callback should indicates whether there has been some trigger.
         redraw(canvas, c)
         reveal(widget)
-        #println("refresh!!")
+        # println("refresh!!")
     end
 
     c.mouse.button1press = @guarded (widget, event) -> begin
@@ -428,6 +438,7 @@ function rshow(
         @async begin
             while !isempty(canvas.animations)
                 for a in canvas.animations
+                    a.is_running || continue
                     if (now() - a.start_time).value / 1000 > a.duration
                         a.is_running = false
                     else
