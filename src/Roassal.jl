@@ -515,7 +515,17 @@ function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::
         0,
         2pi)
     color = circle.color
-    set_source_rgb(ctx, color.r, color.g, color.b)
+    if color isa Symbol
+        color == :red && set_source_rgb(ctx, 1.0, 0.0, 0.0)
+        color == :green && set_source_rgb(ctx, 0.0, 1.0, 0.0)
+        color == :blue && set_source_rgb(ctx, 0.0, 0.0, 1.0)
+        color == :yellow && set_source_rgb(ctx, 1.0, 1.0, 0.0)
+        color == :black && set_source_rgb(ctx, 0.0, 0.0, 0.0)
+        color == :white && set_source_rgb(ctx, 1.0, 1.0, 1.0)
+        color == :gray && set_source_rgb(ctx, 0.5, 0.5, 0.5)
+    else
+        set_source_rgb(ctx, color.r, color.g, color.b)
+    end
     fill(ctx)
 end
 
