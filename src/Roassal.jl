@@ -37,6 +37,8 @@ export get_model
 export highlightable
 export popup
 
+export Animation
+
 # ------------------------------------
 """
 Shape definitions
