@@ -499,9 +499,23 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number
                 encompassingRectangle[2] + _offsetFromCameraToScreen[2] + offset_y,
                 encompassingRectangle[3],
                 encompassingRectangle[4])
-    color = box.color
-    set_source_rgb(ctx, color.r, color.g, color.b)
+    set_color(ctx, box.color)
     fill(ctx)
+end
+
+function set_color(ctx, color)
+    if color isa Symbol
+        color == :red && set_source_rgb(ctx, 1.0, 0.0, 0.0)
+        color == :green && set_source_rgb(ctx, 0.0, 1.0, 0.0)
+        color == :dark_green && set_source_rgb(ctx, 0.0, 0.5, 0.0)
+        color == :blue && set_source_rgb(ctx, 0.0, 0.0, 1.0)
+        color == :yellow && set_source_rgb(ctx, 1.0, 1.0, 0.0)
+        color == :black && set_source_rgb(ctx, 0.0, 0.0, 0.0)
+        color == :white && set_source_rgb(ctx, 1.0, 1.0, 1.0)
+        color == :gray && set_source_rgb(ctx, 0.5, 0.5, 0.5)
+    else
+        set_source_rgb(ctx, color.r, color.g, color.b)
+    end
 end
 
 function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
@@ -514,18 +528,7 @@ function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::
         circle.width / 2,
         0,
         2pi)
-    color = circle.color
-    if color isa Symbol
-        color == :red && set_source_rgb(ctx, 1.0, 0.0, 0.0)
-        color == :green && set_source_rgb(ctx, 0.0, 1.0, 0.0)
-        color == :blue && set_source_rgb(ctx, 0.0, 0.0, 1.0)
-        color == :yellow && set_source_rgb(ctx, 1.0, 1.0, 0.0)
-        color == :black && set_source_rgb(ctx, 0.0, 0.0, 0.0)
-        color == :white && set_source_rgb(ctx, 1.0, 1.0, 1.0)
-        color == :gray && set_source_rgb(ctx, 0.5, 0.5, 0.5)
-    else
-        set_source_rgb(ctx, color.r, color.g, color.b)
-    end
+    set_color(ctx, circle.color)
     fill(ctx)
 end
 
