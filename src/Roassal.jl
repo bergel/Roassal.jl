@@ -373,6 +373,7 @@ function rshow(
     end
 
     signal_connect(win, "key-press-event") do widget, event
+        try
         #println("You pressed key ", event.keyval)
         step = 20
         big_step = step * 5
@@ -386,6 +387,9 @@ function rshow(
         event.keyval == 119 && translate_by!(canvas, 0, -big_step)
         event.keyval == 115 && translate_by!(canvas, 0, big_step)
         redraw(canvas, c)
+                catch e
+            println("Error in mouse motion callback: $e")
+        end
     end
 
     signal_connect(win, "delete-event") do widget, event
@@ -399,6 +403,7 @@ function rshow(
     end
 
     c.mouse.motion = @guarded (widget, event) -> begin
+        try
         offset = offsetFromScreenToCanvas(c)
         shape_or_canvas_under_mouse = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
         #println("($(event.x), $(event.y)) -> $(typeof(shape_or_canvas_under_mouse))")
@@ -416,6 +421,9 @@ function rshow(
         redraw(canvas, c)
         reveal(widget)
         #println("refresh!!")
+        catch e
+            println("Error in mouse motion callback: $e")
+        end
     end
 
     c.mouse.button1press = @guarded (widget, event) -> begin
