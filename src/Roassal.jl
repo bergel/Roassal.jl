@@ -22,7 +22,7 @@ export RLine
 export RColor, RColor_BLUE, RColor_GREEN, RColor_RED
 
 export RCanvas
-export number_of_shapes, add!, remove_shape!, rshow
+export number_of_shapes, add!, remove_shape!, rshow, rclose
 export rendererVisitor
 export get_shape_at_position
 export offset_from_canvas_to_screen, offsetFromScreenToCanvas
@@ -271,9 +271,11 @@ mutable struct RCanvas
     host_window         # type of GtkCanvas
     animations::Vector
     window_title::String
+    width::Int  # Given by the size of the window
+    height::Int # Given by the size of the window
 end
 RCanvas() = RCanvas("Roassal")
-RCanvas(window_title::String) = RCanvas([], [], RBox(), 0, 0, nothing, [], window_title)
+RCanvas(window_title::String) = RCanvas([], [], RBox(), 0, 0, nothing, [], window_title, 0, 0)
 
 number_of_shapes(c::RCanvas) = length(c.shapes)
 
@@ -346,6 +348,12 @@ end
 
 global previous_win = nothing
 
+# Does not work unfortunately
+function rclose(canvas::RCanvas)
+    !isnothing(canvas.host_window) && destroy(canvas.host_window)
+    canvas.host_window = nothing
+end
+
 function rshow(
     canvas::RCanvas
     ;
@@ -370,6 +378,15 @@ function rshow(
         new_width = max(min(es[3] + 10, max_window_size[1]), min_window_size[1])
         new_height = max(min(es[4] + 10, max_window_size[2]), min_window_size[2])
         resize!(win, round(Int, new_width), round(Int, new_height))
+        canvas.width = round(Int, new_width)
+        canvas.height = round(Int, new_height)
+    end
+
+    signal_connect(win, "size-allocate") do widget, allocation
+        # Update the canvas size when the window is resized
+        canvas.width = allocation.width
+        canvas.height = allocation.height
+        redraw(canvas, c)
     end
 
     signal_connect(win, "key-press-event") do widget, event
@@ -392,6 +409,7 @@ function rshow(
         end
     end
 
+    # When the window is closed
     signal_connect(win, "delete-event") do widget, event
         # Remove all animations when the window is closed
         for a in canvas.animations
