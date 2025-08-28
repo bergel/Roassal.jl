@@ -575,7 +575,7 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number
                 encompassingRectangle[4])
     set_color(ctx, box.color)
     fill(ctx)
-    println("DEBUG visiting box: $encompassingRectangle $offset_x $offset_y")
+    # println("DEBUG visiting box: $encompassingRectangle $offset_x $offset_y")
 end
 
 function set_color(ctx, color)
@@ -617,7 +617,7 @@ function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::
         2pi)
     set_color(ctx, circle.color)
     fill(ctx)
-    println("DEBUG visiting circle: $circle")
+    # println("DEBUG visiting circle: $circle")
 
 end
 
