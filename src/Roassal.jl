@@ -186,10 +186,18 @@ function is_intersecting(s1::BoundedShape, s2::BoundedShape)
     r1 = compute_encompassing_rectangle(s1)
     r2 = compute_encompassing_rectangle(s2)
 
-    return !(r1[1] + r1[3] < r2[1] ||  # r1 is left of r2
-             r1[1] > r2[1] + r2[3] ||  # r1 is right of r2
-             r1[2] + r1[4] < r2[2] ||  # r1 is above r2
-             r1[2] > r2[2] + r2[4])    # r1 is below r2
+    return is_intersecting(r1, r2)
+end
+
+function is_intersecting(
+    rect1::Tuple{Number, Number, Number, Number},
+    rect2::Tuple{Number, Number, Number, Number}
+)
+    # Check if two rectangles intersect
+    return !(rect1[1] + rect1[3] < rect2[1] ||  # rect1 is left of rect2
+             rect1[1] > rect2[1] + rect2[3] ||  # rect1 is right of rect2
+             rect1[2] + rect1[4] < rect2[2] ||  # rect1 is above rect2
+             rect1[2] > rect2[2] + rect2[4])    # rect1 is below rect2
 end
 
 # Return (x, y, w, h)
@@ -302,6 +310,10 @@ function get_shape(c::RCanvas, model::Any)
         end
     end
     return nothing
+end
+
+function compute_encompassing_rectangle(c::RCanvas)
+    return (c.offset_X, c.offset_Y, c.width + c.offset_X, c.height + c.offset_Y)
 end
 
 function redraw(canvas::RCanvas, c::GtkCanvas)
@@ -511,8 +523,11 @@ end
 Rendering using a visitor
 """
 function rendererVisitor(canvas::RCanvas, gtk::GtkCanvas=GtkCanvas())
+    canvas_er = compute_encompassing_rectangle(canvas)
     for shape in canvas.shapes
-        rendererVisitor(shape, gtk, canvas.offset_X, canvas.offset_Y)
+        # if is_intersecting(compute_encompassing_rectangle(shape), canvas_er)
+            rendererVisitor(shape, gtk, canvas.offset_X, canvas.offset_Y)
+        # end
     end
 end
 
@@ -527,6 +542,7 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number
                 encompassingRectangle[4])
     set_color(ctx, box.color)
     fill(ctx)
+    println("DEBUG visiting box: $encompassingRectangle $offset_x $offset_y")
 end
 
 function set_color(ctx, color)
