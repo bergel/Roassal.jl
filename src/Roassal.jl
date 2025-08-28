@@ -186,10 +186,19 @@ function is_intersecting(s1::BoundedShape, s2::BoundedShape)
     r1 = compute_encompassing_rectangle(s1)
     r2 = compute_encompassing_rectangle(s2)
 
-    return !(r1[1] + r1[3] < r2[1] ||  # r1 is left of r2
-             r1[1] > r2[1] + r2[3] ||  # r1 is right of r2
-             r1[2] + r1[4] < r2[2] ||  # r1 is above r2
-             r1[2] > r2[2] + r2[4])    # r1 is below r2
+    return is_intersecting(r1, r2)
+end
+
+# Each tupple is (x, y, w, h)
+function is_intersecting(
+    rect1::Tuple{Number, Number, Number, Number},
+    rect2::Tuple{Number, Number, Number, Number}
+)
+    # Check if two rectangles intersect
+    return !(rect1[1] + rect1[3] < rect2[1] ||  # rect1 is left of rect2
+             rect1[1] > rect2[1] + rect2[3] ||  # rect1 is right of rect2
+             rect1[2] + rect1[4] < rect2[2] ||  # rect1 is above rect2
+             rect1[2] > rect2[2] + rect2[4])    # rect1 is below rect2
 end
 
 # Return (x, y, w, h)
@@ -288,7 +297,7 @@ end
 # Base.show(io::IO, c::RCanvas) = Base.show(io, MIME"text/plain", c)
 
 function Base.show(io::IO, c::RCanvas)
-    print(io, "RCanvas{ $(number_of_shapes(c)) shapes }")
+    print(io, "RCanvas{ $(number_of_shapes(c)) shapes, offset:($(c.offset_X), $(c.offset_Y)), size:($(c.width), $(c.height))) }")
 end
 
 get_shapes(c::RCanvas) = c.shapes
@@ -302,6 +311,24 @@ function get_shape(c::RCanvas, model::Any)
         end
     end
     return nothing
+end
+
+function compute_encompassing_rectangle(c::RCanvas)
+    return (-c.offset_X - c.width/2, -c.offset_Y - c.height/2, c.width/2, c.height/2)
+end
+
+function is_intersecting(c::RCanvas, shape::Shape)
+    return is_intersecting(
+        compute_encompassing_rectangle(c),
+        compute_encompassing_rectangle(shape)
+    )
+end
+
+function is_intersecting(shape::Shape, c::RCanvas)
+    return is_intersecting(
+        compute_encompassing_rectangle(c),
+        compute_encompassing_rectangle(shape)
+    )
 end
 
 function redraw(canvas::RCanvas, c::GtkCanvas)
@@ -511,8 +538,16 @@ end
 Rendering using a visitor
 """
 function rendererVisitor(canvas::RCanvas, gtk::GtkCanvas=GtkCanvas())
+    # o = offset_from_canvas_to_screen(gtk)
+    # er_canvas = compute_encompassing_rectangle(canvas)
     for shape in canvas.shapes
-        rendererVisitor(shape, gtk, canvas.offset_X, canvas.offset_Y)
+        # er = compute_encompassing_rectangle(shape)
+        # er = (er[1] - o[1], er[2] - o[2], er[3], er[4])
+        # er = (er[1] + o[1] + canvas.offset_X, er[2] + o[2] + canvas.offset_Y, er[3], er[4])
+        # if is_intersecting(er, er_canvas)
+        #     @info "Rendering shape: $shape"
+            rendererVisitor(shape, gtk, canvas.offset_X, canvas.offset_Y)
+        # end
     end
 end
 
@@ -520,6 +555,19 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number
     ctx = getgc(gtk)
     encompassingRectangle = compute_encompassing_rectangle(box)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
+
+    if encompassingRectangle[3] <= 0 || encompassingRectangle[4] <= 0
+        return
+    end
+
+    if encompassingRectangle[1] + _offsetFromCameraToScreen[1] + offset_x > width(gtk) ||
+       encompassingRectangle[1] + _offsetFromCameraToScreen[1] + offset_x + encompassingRectangle[3] < 0 ||
+
+       encompassingRectangle[2] + _offsetFromCameraToScreen[2] + offset_y > height(gtk) ||
+       encompassingRectangle[2] + _offsetFromCameraToScreen[2] + offset_y + encompassingRectangle[4] < 0
+        return
+    end
+
     rectangle(ctx,
                 encompassingRectangle[1] + _offsetFromCameraToScreen[1] + offset_x,
                 encompassingRectangle[2] + _offsetFromCameraToScreen[2] + offset_y,
@@ -527,6 +575,7 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number
                 encompassingRectangle[4])
     set_color(ctx, box.color)
     fill(ctx)
+    # println("DEBUG visiting box: $encompassingRectangle $offset_x $offset_y")
 end
 
 function set_color(ctx, color)
@@ -548,6 +597,18 @@ function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::
     ctx = getgc(gtk)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
 
+    # if encompassingRectangle[3] <= 0 || encompassingRectangle[4] <= 0
+    #     return
+    # end
+
+    if circle.x + _offsetFromCameraToScreen[1] + offset_x > width(gtk) ||
+       circle.x + _offsetFromCameraToScreen[1] + offset_x + circle.width < 0 ||
+
+       circle.y + _offsetFromCameraToScreen[2] + offset_y > height(gtk) ||
+       circle.y + _offsetFromCameraToScreen[2] + offset_y + circle.width < 0
+        return
+    end
+
     arc(ctx,
         circle.x + _offsetFromCameraToScreen[1] + offset_x,
         circle.y + _offsetFromCameraToScreen[2] + offset_y,
@@ -556,6 +617,8 @@ function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::
         2pi)
     set_color(ctx, circle.color)
     fill(ctx)
+    # println("DEBUG visiting circle: $circle")
+
 end
 
 function rendererVisitor(text::RText, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
