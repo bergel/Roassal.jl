@@ -588,6 +588,7 @@ function set_color(ctx, color)
         color == :black && set_source_rgb(ctx, 0.0, 0.0, 0.0)
         color == :white && set_source_rgb(ctx, 1.0, 1.0, 1.0)
         color == :gray && set_source_rgb(ctx, 0.5, 0.5, 0.5)
+        color == :purple && set_source_rgb(ctx, 0.9, 0.0, 0.9)
     else
         set_source_rgb(ctx, color.r, color.g, color.b)
     end
