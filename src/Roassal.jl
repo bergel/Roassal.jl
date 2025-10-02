@@ -103,7 +103,7 @@ mutable struct RCircle <: BoundedShape
 end
 
 function RCircle(;
-    color=RColor(),
+    color=:blue,
     x=0, y=0,
     radius=10,
     width=0,
@@ -632,8 +632,7 @@ end
 function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
 
-    color = line.color
-    set_source_rgb(ctx, color.r, color.g, color.b)
+    set_color(ctx, line.color)
 
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
     from_position = pos(line.from) .+ _offsetFromCameraToScreen .+ (offset_x, offset_y)

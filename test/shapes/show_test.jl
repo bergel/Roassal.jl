@@ -5,6 +5,6 @@
 
     io = IOBuffer()
     show(io, RCircle())
-    @test String(take!(io)) == "RCircle{ pos:(0, 0), color:RColor(0.8, 0.8, 0.8), model:nothing }"
+    @test String(take!(io)) == "RCircle{ pos:(0, 0), color:blue, model:nothing }"
 
 end
