@@ -243,17 +243,22 @@ end
 # ------------------------------------
 
 mutable struct RText <: BoundedShape
-    value::String
     color
     x
     y
     width
     height
+    callbacks
     canvas
+    outgoing_edges
+    incoming_edges
+    model
+
+    value::String
 end
 
 function RText(value::String; color=RColor_WHITE)
-    return RText(value, color, 0, 0, 0, 0, nothing)
+    return RText(color, 0, 0, 0, 0, [], nothing, [], [], nothing, value)
 end
 
 # ------------------------------------
@@ -308,7 +313,7 @@ function Base.show(io::IO, c::RCanvas)
     print(io, "RCanvas{ $(number_of_shapes(c)) shapes, offset:($(c.offset_X), $(c.offset_Y)), size:($(c.width), $(c.height))) }")
 end
 
-get_shapes(c::RCanvas) = c.shapes
+get_shapes(c::RCanvas) = Vector(c.shapes)
 get_nodes(c::RCanvas) = filter(s -> !(s isa RLine), get_shapes(c))
 get_edges(c::RCanvas) = filter(s -> s isa RLine, get_shapes(c))
 
