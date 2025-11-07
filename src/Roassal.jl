@@ -3,6 +3,12 @@ module Roassal
 # ------------------------------------
 # Graphic
 using Gtk, Graphics
+using Cairo: show_text, move_to, stroke
+
+# ------------------------------------
+# Utility
+using Dates: now
+
 # ------------------------------------
 # Modeling
 export Shape
@@ -246,7 +252,7 @@ mutable struct RText <: BoundedShape
     canvas
 end
 
-function RText(value::String; color=RColor_BLUE)
+function RText(value::String; color=RColor_WHITE)
     return RText(value, color, 0, 0, 0, 0, nothing)
 end
 
@@ -264,6 +270,8 @@ RColor() = RColor(0.8, 0.8, 0.8)
 RColor_BLUE = RColor(0, 0, 1)
 RColor_GREEN = RColor(0, 1, 0)
 RColor_RED = RColor(1, 0, 0)
+RColor_WHITE = RColor(1, 1, 1)
+RColor_GRAY = RColor(0.8, 0.8, 0.8)
 
 random_color()=RColor(rand(), rand(), rand())
 
@@ -625,8 +633,13 @@ end
 function rendererVisitor(text::RText, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
-    label = GtkLabel("Hello")
-    push!(gtk, label)
+    move_to(ctx,
+        text.x + _offsetFromCameraToScreen[1] + offset_x,
+        text.y + _offsetFromCameraToScreen[2] + offset_y)
+    set_color(ctx, text.color)
+    # set_font_size(ctx, 90.0);
+    show_text(ctx, text.value)
+    stroke(ctx);
 end
 
 function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)

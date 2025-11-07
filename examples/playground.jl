@@ -276,6 +276,14 @@ function oscillate2()
     rshow(c)
 end
 
+function text_example()
+    c = RCanvas()
+    text = RText("Hello Roassal!")
+    translate_to!(text, 100, 100)
+    add!(c, text)
+    rshow(c)
+end
+
 # example11()
 displaying_graph()
 
