@@ -12,7 +12,6 @@
         @test get_width(b) == 20
         @test get_height(b) == 20
     end
-
 end
 
 @testset "Encompassing" begin
