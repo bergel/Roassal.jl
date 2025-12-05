@@ -388,8 +388,14 @@ function rshow(
     resize::Bool=true,
     max_window_size::Tuple{Number, Number}=(800, 600),
     min_window_size::Tuple{Number, Number}=(200, 200),
+    size::Tuple{Number, Number}=(0, 0),
 )
-    c = @GtkCanvas()
+    local c
+    if size != (0, 0)
+        c = @GtkCanvas(size[1], size[2])
+    else
+        c = @GtkCanvas()
+    end
     !isnothing(previous_win) && destroy(previous_win)
 
     # We keep a reference to allow for refresh and animations
@@ -400,7 +406,8 @@ function rshow(
     redraw(canvas, c)
 
     center && center!(canvas, resize)
-    if resize
+
+    if size == (0, 0) && resize
         es = compute_encompassing_rectangle(get_shapes(canvas))
         new_width = max(min(es[3] + 10, max_window_size[1]), min_window_size[1])
         new_height = max(min(es[4] + 10, max_window_size[2]), min_window_size[2])
@@ -409,12 +416,13 @@ function rshow(
         canvas.height = round(Int, new_height)
     end
 
-    signal_connect(win, "size-allocate") do widget, allocation
-        # Update the canvas size when the window is resized
-        canvas.width = allocation.width
-        canvas.height = allocation.height
-        redraw(canvas, c)
-    end
+    # signal_connect(win, "size-allocate") do widget, allocation
+    #     # Update the canvas size when the window is resized
+    #     canvas.width = allocation.width
+    #     canvas.height = allocation.height
+    #     c = @GtkCanvas(canvas.width, canvas.height)
+    #     redraw(canvas, c)
+    # end
 
     signal_connect(win, "key-press-event") do widget, event
         try
@@ -575,7 +583,7 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number
                 encompassingRectangle[4])
     set_color(ctx, box.color)
     fill(ctx)
-    # println("DEBUG visiting box: $encompassingRectangle $offset_x $offset_y")
+    println("DEBUG visiting box: $encompassingRectangle $offset_x $offset_y")
 end
 
 function set_color(ctx, color)
