@@ -2,8 +2,10 @@
 # Animations
 
 using Dates
+using Base.Threads
 
 export Animation, add!, oscillate!
+export add_key_callback!, add_key_canvas_controller!
 
 mutable struct Animation
     start_time::DateTime
@@ -88,12 +90,12 @@ end =#
 
 highlighted_shapes = Dict{Shape,RColor}()
 function highlightable(shape::Shape)
-    function recordColor()
+    function recordColor(_, _)
         global highlighted_shapes[shape] = get_color(shape)
         println("Highlight: $(shape.model)")
         set_color!(shape, RColor_BLUE)
     end
-    function restoreColor()
+    function restoreColor(_, _)
         #println("mouse leave! $(haskey(highlighted_shapes, shape))\n")
         if(haskey(highlighted_shapes, shape))
             set_color!(shape, highlighted_shapes[shape])
@@ -132,3 +134,55 @@ end
 #     return shape
 # end
 # ------------------------------------
+
+
+function add_key_callback!(
+    shape_or_canvas::Union{Shape,RCanvas},
+    key_number::Int,
+    press_func::Function,
+    release_func::Function
+)
+    is_pressed = false
+    add_callback!(shape_or_canvas, Callback(:keyPress, (event, canvas) -> begin
+        if event.keyval == key_number && !is_pressed
+            is_pressed = true
+            press_func(event, canvas)
+        end
+    end))
+
+    add_callback!(shape_or_canvas, Callback(:keyRelease, (event, canvas) -> begin
+        if event.keyval == key_number
+            is_pressed = false
+            release_func(event, canvas)
+        end
+    end))
+end
+
+function add_key_canvas_controller!(canvas::RCanvas)
+    delta_x = Threads.Atomic{Int}(0)
+    delta_y = Threads.Atomic{Int}(0)
+    function _tmp(a)
+        translate_by!(canvas, delta_x[], delta_y[])
+    end
+    add!(canvas, Animation(_tmp, 100))
+
+    add_key_callback!(canvas, 65363,  # Right arrow
+        (event, canvas) -> begin delta_x[] = 1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65364,  # Down arrow
+        (event, canvas) -> begin delta_y[] = 1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65361,  # Left arrow
+        (event, canvas) -> begin delta_x[] = -1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65362,  # Up arrow
+        (event, canvas) -> begin delta_y[] = -1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+end
