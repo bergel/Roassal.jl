@@ -336,9 +336,11 @@ function redraw(canvas::RCanvas, c::GtkCanvas)
         h = height(c)
         w = width(c)
         ctx = getgc(c)
+        save(ctx)
         rectangle(ctx, 0, 0, w, h)
         set_source_rgb(ctx, 0.2, 0.2, 0.2)
         fill(ctx)
+        restore(ctx)
 
         rendererVisitor(canvas, c)
     end
@@ -416,31 +418,47 @@ function rshow(
         canvas.height = round(Int, new_height)
     end
 
-    # signal_connect(win, "size-allocate") do widget, allocation
-    #     # Update the canvas size when the window is resized
-    #     canvas.width = allocation.width
-    #     canvas.height = allocation.height
-    #     c = @GtkCanvas(canvas.width, canvas.height)
-    #     redraw(canvas, c)
-    # end
+    signal_connect(win, "size-allocate") do widget, allocation
+        # Update the canvas size when the window is resized
+        canvas.width = allocation.width
+        canvas.height = allocation.height
+        redraw(canvas, c)
+    end
+
+    signal_connect(win, "key-release-event") do widget, event
+        try
+            println("You released key ", event.keyval)
+            # offset = offsetFromScreenToCanvas(c)
+            # shape_or_canvas_under_mouse = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
+            trigger_callback(canvas, :keyRelease, event)
+        catch e
+            println("Error in key-released-event callback: $e")
+            @error "Something went wrong1" exception=(e, catch_backtrace())
+
+        end
+    end
 
     signal_connect(win, "key-press-event") do widget, event
         try
-        #println("You pressed key ", event.keyval)
-        step = 20
-        big_step = step * 5
-        event.keyval == 65361 && translate_by!(canvas, step, 0)
-        event.keyval == 65363 && translate_by!(canvas, -step, 0)
-        event.keyval == 65364 && translate_by!(canvas, 0, -step)
-        event.keyval == 65362 && translate_by!(canvas, 0, step)
+            # println("You pressed key ", event.keyval)
+            # offset = offsetFromScreenToCanvas(c)
+            # shape_or_canvas_under_mouse = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
+            trigger_callback(canvas, :keyPress, event)
+            # step = 20
+            # big_step = step * 5
+            # event.keyval == 65361 && translate_by!(canvas, step, 0)
+            # event.keyval == 65363 && translate_by!(canvas, -step, 0)
+            # event.keyval == 65364 && translate_by!(canvas, 0, -step)
+            # event.keyval == 65362 && translate_by!(canvas, 0, step)
 
-        event.keyval == 97 && translate_by!(canvas, big_step, 0)
-        event.keyval == 100 && translate_by!(canvas, -big_step, 0)
-        event.keyval == 119 && translate_by!(canvas, 0, -big_step)
-        event.keyval == 115 && translate_by!(canvas, 0, big_step)
-        redraw(canvas, c)
-                catch e
-            println("Error in mouse motion callback: $e")
+            # event.keyval == 97 && translate_by!(canvas, big_step, 0)
+            # event.keyval == 100 && translate_by!(canvas, -big_step, 0)
+            # event.keyval == 119 && translate_by!(canvas, 0, -big_step)
+            # event.keyval == 115 && translate_by!(canvas, 0, big_step)
+            redraw(canvas, c)
+        catch e
+            println("Error in key-press-event callback: $e")
+            @error "Something went wrong2" exception=(e, catch_backtrace())
         end
     end
 
@@ -549,6 +567,8 @@ function rendererVisitor(canvas::RCanvas, gtk::GtkCanvas=GtkCanvas())
     # o = offset_from_canvas_to_screen(gtk)
     # er_canvas = compute_encompassing_rectangle(canvas)
     for shape in canvas.shapes
+        # @info "Considering shape: $shape"
+
         # er = compute_encompassing_rectangle(shape)
         # er = (er[1] - o[1], er[2] - o[2], er[3], er[4])
         # er = (er[1] + o[1] + canvas.offset_X, er[2] + o[2] + canvas.offset_Y, er[3], er[4])
@@ -561,6 +581,7 @@ end
 
 function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
+    save(ctx)
     encompassingRectangle = compute_encompassing_rectangle(box)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
 
@@ -583,7 +604,8 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number
                 encompassingRectangle[4])
     set_color(ctx, box.color)
     fill(ctx)
-    println("DEBUG visiting box: $encompassingRectangle $offset_x $offset_y")
+    restore(ctx)
+    # println("DEBUG visiting box: $encompassingRectangle $offset_x $offset_y")
 end
 
 function set_color(ctx, color)
@@ -597,6 +619,7 @@ function set_color(ctx, color)
         color == :white && set_source_rgb(ctx, 1.0, 1.0, 1.0)
         color == :gray && set_source_rgb(ctx, 0.5, 0.5, 0.5)
         color == :purple && set_source_rgb(ctx, 0.9, 0.0, 0.9)
+        color == :brown && set_source_rgb(ctx, 0.6, 0.3, 0.0)
     else
         set_source_rgb(ctx, color.r, color.g, color.b)
     end
@@ -604,6 +627,7 @@ end
 
 function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
+    save(ctx)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
 
     # if encompassingRectangle[3] <= 0 || encompassingRectangle[4] <= 0
@@ -626,6 +650,7 @@ function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::
         2pi)
     set_color(ctx, circle.color)
     fill(ctx)
+    restore(ctx)
     # println("DEBUG visiting circle: $circle")
 
 end
@@ -639,7 +664,7 @@ end
 
 function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
-
+    save(ctx)
     set_color(ctx, line.color)
 
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
@@ -650,6 +675,7 @@ function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Numb
     set_line_width(ctx, 2.0)
     stroke(ctx)
 
+    restore(ctx)
     # println("DEBUG: $color $from_position $to_position")
 
 #=     fill(ctx)
@@ -700,8 +726,8 @@ function trigger_callback(shape_or_canvas_under_mouse, name::Symbol, event=nothi
     # Can be better written
     for c in shape_or_canvas_under_mouse.callbacks
         if (c.name == name)
-            #c.f(event, shape_or_canvas_under_mouse)
-            c.f()
+            c.f(event, shape_or_canvas_under_mouse)
+            # c.f()
         end
     end
 end

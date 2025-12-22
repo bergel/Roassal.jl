@@ -13,7 +13,7 @@ end
     trigger_callback(box, :mouseMove, "not an event")
     trigger_callback(box, :mouseMove, "not an event")
 
-    add_callback!(box, Callback(:mouseMove, () -> a = a + 1))
+    add_callback!(box, Callback(:mouseMove, (event, shape) -> a = a + 1))
     @test numberOfCallbacks(box) == 1
     @test a == 0
     trigger_callback(box, :mouseMove, "not an event")
@@ -37,7 +37,7 @@ end
     trigger_callback(canvas, :mouseMove, "not an event")
     trigger_callback(canvas, :mouseMove, "not an event")
 
-    add_callback!(canvas, Callback(:mouseMove, () -> a = a + 1))
+    add_callback!(canvas, Callback(:mouseMove, (event, shape) -> a = a + 1))
     @test numberOfCallbacks(canvas) == 1
     @test a == 0
     trigger_callback(canvas, :mouseMove, "not an event")
@@ -71,15 +71,15 @@ end =#
     box2 = RBox()
     add!(canvas, box1)
     add!(canvas, box2)
-    add_callback!(get_shapes(canvas), Callback(:mouseMove, () -> 42))
+    add_callback!(get_shapes(canvas), Callback(:mouseMove, (event, shape) -> 42))
     @test numberOfCallbacks(box1) == 1
     @test numberOfCallbacks(box2) == 1
 
-    add_callback!(get_shapes(canvas)[1], Callback(:mouseMove, () -> 42))
+    add_callback!(get_shapes(canvas)[1], Callback(:mouseMove, (event, shape) -> 42))
     @test numberOfCallbacks(box1) == 2
     @test numberOfCallbacks(box2) == 1
 
-    add_callback!(get_shapes(canvas), Callback(:mouseMove, () -> 42))
+    add_callback!(get_shapes(canvas), Callback(:mouseMove, (event, shape) -> 42))
     @test numberOfCallbacks(box1) == 3
     @test numberOfCallbacks(box2) == 2
 end

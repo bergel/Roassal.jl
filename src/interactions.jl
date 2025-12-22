@@ -2,6 +2,7 @@
 # Animations
 
 using Dates
+using Base.Threads
 
 export Animation, add!, oscillate!
 export add_key_callback!, add_key_canvas_controller!, add_key_shape_controller!
@@ -90,12 +91,12 @@ end =#
 
 highlighted_shapes = Dict{Shape,RColor}()
 function highlightable(shape::Shape)
-    function recordColor()
+    function recordColor(_, _)
         global highlighted_shapes[shape] = get_color(shape)
         println("Highlight: $(shape.model)")
         set_color!(shape, RColor_BLUE)
     end
-    function restoreColor()
+    function restoreColor(_, _)
         #println("mouse leave! $(haskey(highlighted_shapes, shape))\n")
         if(haskey(highlighted_shapes, shape))
             set_color!(shape, highlighted_shapes[shape])
