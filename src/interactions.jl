@@ -4,6 +4,8 @@
 using Dates
 
 export Animation, add!, oscillate!
+export add_key_callback!, add_key_canvas_controller!, add_key_shape_controller!
+export center_on_shape!
 
 mutable struct Animation
     start_time::DateTime
@@ -132,3 +134,94 @@ end
 #     return shape
 # end
 # ------------------------------------
+
+
+function add_key_callback!(
+    shape_or_canvas::Union{Shape,RCanvas},
+    key_number::Int,
+    press_func::Function,
+    release_func::Function
+)
+    is_pressed = false
+    add_callback!(shape_or_canvas, Callback(:keyPress, (event, canvas) -> begin
+        if event.keyval == key_number && !is_pressed
+            is_pressed = true
+            press_func(event, canvas)
+        end
+    end))
+
+    add_callback!(shape_or_canvas, Callback(:keyRelease, (event, canvas) -> begin
+        if event.keyval == key_number
+            is_pressed = false
+            release_func(event, canvas)
+        end
+    end))
+end
+
+function add_key_canvas_controller!(canvas::RCanvas)
+    delta_x = Threads.Atomic{Int}(0)
+    delta_y = Threads.Atomic{Int}(0)
+    function _tmp(a)
+        translate_by!(canvas, delta_x[], delta_y[])
+    end
+    add!(canvas, Animation(_tmp, 100))
+
+    add_key_callback!(canvas, 65363,  # Right arrow
+        (event, canvas) -> begin delta_x[] = 1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65364,  # Down arrow
+        (event, canvas) -> begin delta_y[] = 1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65361,  # Left arrow
+        (event, canvas) -> begin delta_x[] = -1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65362,  # Up arrow
+        (event, canvas) -> begin delta_y[] = -1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+end
+
+function center_on_shape!(canvas::RCanvas, shape::Shape)
+    p = pos(shape)
+    translate_to!(canvas, -p[1], -p[2])
+end
+
+function add_key_shape_controller!(
+    canvas::RCanvas,
+    shape::Shape,
+    callback::Function=()->nothing
+)
+    delta_x = Threads.Atomic{Int}(0)
+    delta_y = Threads.Atomic{Int}(0)
+    function _tmp(a)
+        translate_by!(shape, delta_x[], delta_y[])
+        callback()
+    end
+    add!(canvas, Animation(_tmp, 100))
+
+    add_key_callback!(canvas, 65363,  # Right arrow
+        (event, canvas) -> begin delta_x[] = 1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65364,  # Down arrow
+        (event, canvas) -> begin delta_y[] = 1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65361,  # Left arrow
+        (event, canvas) -> begin delta_x[] = -1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65362,  # Up arrow
+        (event, canvas) -> begin delta_y[] = -1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+end
