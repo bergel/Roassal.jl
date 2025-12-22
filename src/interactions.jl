@@ -5,7 +5,8 @@ using Dates
 using Base.Threads
 
 export Animation, add!, oscillate!
-export add_key_callback!, add_key_canvas_controller!
+export add_key_callback!, add_key_canvas_controller!, add_key_shape_controller!
+export center_on_shape!
 
 mutable struct Animation
     start_time::DateTime
@@ -163,6 +164,45 @@ function add_key_canvas_controller!(canvas::RCanvas)
     delta_y = Threads.Atomic{Int}(0)
     function _tmp(a)
         translate_by!(canvas, delta_x[], delta_y[])
+    end
+    add!(canvas, Animation(_tmp, 100))
+
+    add_key_callback!(canvas, 65363,  # Right arrow
+        (event, canvas) -> begin delta_x[] = 1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65364,  # Down arrow
+        (event, canvas) -> begin delta_y[] = 1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65361,  # Left arrow
+        (event, canvas) -> begin delta_x[] = -1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65362,  # Up arrow
+        (event, canvas) -> begin delta_y[] = -1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+end
+
+function center_on_shape!(canvas::RCanvas, shape::Shape)
+    p = pos(shape)
+    translate_to!(canvas, -p[1], -p[2])
+end
+
+function add_key_shape_controller!(
+    canvas::RCanvas,
+    shape::Shape,
+    callback::Function=()->nothing
+)
+    delta_x = Threads.Atomic{Int}(0)
+    delta_y = Threads.Atomic{Int}(0)
+    function _tmp(a)
+        translate_by!(shape, delta_x[], delta_y[])
+        callback()
     end
     add!(canvas, Animation(_tmp, 100))
 
