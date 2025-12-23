@@ -215,3 +215,45 @@ end
     # @test is_intersecting(s3, c) == true
     # @test is_intersecting(c, s3) == true
 end
+
+@testset "Visible shapes" begin
+    c = RCanvas()
+    s1 = RBox(; x=10, y=10, width=20, height=20, color=RColor(1.0, 0, 0))
+    s2 = RBox(; x=50, y=50, width=20, height=20, color=RColor(0, 1.0, 0))
+    s3 = RBox(; x=90, y=90, width=20, height=20, color=RColor(0, 0, 1.0))
+
+    add!(c, s1)
+    add!(c, s2)
+    add!(c, s3)
+
+    # Manually set the canvas size (it is not set since not rendered)
+    c.width = 100
+    c.height = 100
+    center!(c)
+    # rshow(c; center=false, size=(100, 100))
+
+    # is_intersecting
+    @test is_intersecting(c, s1)
+    @test is_intersecting(c, s2)
+    @test is_intersecting(c, s3)
+
+    visible = visible_shapes(c)
+    @test length(visible) == 3
+    @test s1 in visible
+    @test s2 in visible
+    @test s3 in visible
+
+    translate_by!(c, (30, 30))
+    visible = visible_shapes(c)
+    @test length(visible) == 2
+    @test s1 in visible
+    @test s2 in visible
+    @test !(s3 in visible)
+
+    translate_by!(c, (55, 55))
+    visible = visible_shapes(c)
+    @test length(visible) == 1
+    @test s1 in visible
+    @test !(s2 in visible)
+    @test !(s3 in visible)
+end

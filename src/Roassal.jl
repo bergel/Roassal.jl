@@ -28,6 +28,7 @@ export get_shape_at_position
 export offset_from_canvas_to_screen, offsetFromScreenToCanvas
 export get_shapes, get_nodes, get_edges
 export center!, refresh, get_shape, push_lines_back
+export visible_shapes
 
 export Callback
 export numberOfCallbacks, add_callback!, trigger_callback
@@ -313,8 +314,19 @@ function get_shape(c::RCanvas, model::Any)
     return nothing
 end
 
+# Return (x, y, w, h)
 function compute_encompassing_rectangle(c::RCanvas)
-    return (-c.offset_X - c.width/2, -c.offset_Y - c.height/2, c.width/2, c.height/2)
+    return (
+            -c.offset_X - c.width/2,
+            -c.offset_Y - c.height/2,
+            c.width,
+            c.height)
+    # return (-c.offset_X - c.width/2, -c.offset_Y - c.height/2, c.width/2, c.height/2)
+end
+
+# Return the list of shapes visible in the canvas
+function visible_shapes(c::RCanvas)
+    return filter(s -> is_intersecting(c, s), c.shapes)
 end
 
 function is_intersecting(c::RCanvas, shape::Shape)
@@ -416,6 +428,12 @@ function rshow(
         resize!(win, round(Int, new_width), round(Int, new_height))
         canvas.width = round(Int, new_width)
         canvas.height = round(Int, new_height)
+    end
+
+    if size != (0, 0)
+        canvas.width = size[1]
+        canvas.height = size[2]
+        resize!(win, size[1], size[2])
     end
 
     signal_connect(win, "size-allocate") do widget, allocation
