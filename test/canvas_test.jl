@@ -173,47 +173,6 @@ end
     s4 = RBox(; x=30, y=50, width=20, height=20, color=RColor(0.5, 0.5, 0))
     @test compute_encompassing_rectangle(s4) == (20.0, 40.0, 20.0, 20.0)
     @test is_intersecting(s3, s4) == true
-
-    # # Manually set the canvas size (it is not set since not rendered)
-    # # Sanity checks
-    # c.width = 200
-    # c.height = 200
-    # center!(c)
-    # @test c.offset_X == -30
-    # @test c.offset_Y == -30
-
-    # # Intersection with canvas offset
-    # @test is_intersecting(s1, c) == true
-    # @test is_intersecting(s2, c) == true
-    # @test is_intersecting(s3, c) == true
-
-    # # Move a shape outside the canvas
-    # translate_to!(s3, 300, 300)
-    # @test is_intersecting(s3, c) == false
-    # @test is_intersecting(c, s3) == false
-
-    # # Move it back
-    # translate_to!(s3, 50, 50)
-    # @test is_intersecting(s3, c) == true
-    # @test is_intersecting(c, s3) == true
-
-    # # Move the canvas offset
-    # translate_by!(c, (110, 110))
-    # @test c.offset_X == 80
-    # @test c.offset_Y == 80
-    # @test is_intersecting(s1, c) == false
-    # @test is_intersecting(c, s1) == false
-    # @test is_intersecting(s2, c) == false
-    # @test is_intersecting(c, s2) == false
-    # @test is_intersecting(s3, c) == false
-    # @test is_intersecting(c, s3) == false
-
-    # @test compute_encompassing_rectangle(c) == (80.0, 80.0, 280.0, 280.0)
-
-    # # Move the shape at the edge of the canvas
-    # translate_to!(s3, 80, 80)
-    # @test is_intersecting(s3, c) == true
-    # @test is_intersecting(c, s3) == true
 end
 
 @testset "Visible shapes" begin
