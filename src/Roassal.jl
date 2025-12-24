@@ -7,6 +7,7 @@ using Gtk, Graphics
 # Modeling
 export Shape
 export pos, extent, compute_encompassing_rectangle
+export pos_in_window
 export translate_to!, translate_topleft_to!, extent!, translate_by!
 export get_width, get_height
 
@@ -89,6 +90,9 @@ pos(s::BoundedShape) = (s.x, s.y)
 extent(s::BoundedShape) = (s.width, s.height)
 get_width(s::BoundedShape) = extent(s)[1]
 get_height(s::BoundedShape) = extent(s)[2]
+
+# Return the position of the shape in the window. Top-left is (0,0)
+pos_in_window(s::Shape) = (s.x + s.canvas.offset_X + s.canvas.width/2, s.y + s.canvas.offset_Y + s.canvas.height/2)
 
 mutable struct RCircle <: BoundedShape
     color

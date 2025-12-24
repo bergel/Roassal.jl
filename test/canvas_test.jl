@@ -202,12 +202,19 @@ end
     @test s2 in visible
     @test s3 in visible
 
+    @test pos_in_window(s1) == (10, 10)
+    @test pos_in_window(s2) == (50, 50)
+    @test pos_in_window(s3) == (90, 90)
+
     translate_by!(c, (30, 30))
     visible = visible_shapes(c)
     @test length(visible) == 2
     @test s1 in visible
     @test s2 in visible
     @test !(s3 in visible)
+
+    @test pos_in_window(s1) == (40, 40)
+    @test pos_in_window(s2) == (80, 80)
 
     translate_by!(c, (55, 55))
     visible = visible_shapes(c)
