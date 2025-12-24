@@ -7,6 +7,7 @@ using Gtk, Graphics
 # Modeling
 export Shape
 export pos, extent, compute_encompassing_rectangle
+export pos_in_window
 export translate_to!, translate_topleft_to!, extent!, translate_by!
 export get_width, get_height
 
@@ -28,6 +29,7 @@ export get_shape_at_position
 export offset_from_canvas_to_screen, offsetFromScreenToCanvas
 export get_shapes, get_nodes, get_edges
 export center!, refresh, get_shape, push_lines_back
+export visible_shapes
 
 export Callback
 export numberOfCallbacks, add_callback!, trigger_callback
@@ -88,6 +90,9 @@ pos(s::BoundedShape) = (s.x, s.y)
 extent(s::BoundedShape) = (s.width, s.height)
 get_width(s::BoundedShape) = extent(s)[1]
 get_height(s::BoundedShape) = extent(s)[2]
+
+# Return the position of the shape in the window. Top-left is (0,0)
+pos_in_window(s::Shape) = (s.x + s.canvas.offset_X + s.canvas.width/2, s.y + s.canvas.offset_Y + s.canvas.height/2)
 
 mutable struct RCircle <: BoundedShape
     color
@@ -313,8 +318,19 @@ function get_shape(c::RCanvas, model::Any)
     return nothing
 end
 
+# Return (x, y, w, h)
 function compute_encompassing_rectangle(c::RCanvas)
-    return (-c.offset_X - c.width/2, -c.offset_Y - c.height/2, c.width/2, c.height/2)
+    return (
+            -c.offset_X - c.width/2,
+            -c.offset_Y - c.height/2,
+            c.width,
+            c.height)
+    # return (-c.offset_X - c.width/2, -c.offset_Y - c.height/2, c.width/2, c.height/2)
+end
+
+# Return the list of shapes visible in the canvas
+function visible_shapes(c::RCanvas)
+    return filter(s -> is_intersecting(c, s), c.shapes)
 end
 
 function is_intersecting(c::RCanvas, shape::Shape)
@@ -416,6 +432,12 @@ function rshow(
         resize!(win, round(Int, new_width), round(Int, new_height))
         canvas.width = round(Int, new_width)
         canvas.height = round(Int, new_height)
+    end
+
+    if size != (0, 0)
+        canvas.width = size[1]
+        canvas.height = size[2]
+        resize!(win, size[1], size[2])
     end
 
     signal_connect(win, "size-allocate") do widget, allocation
