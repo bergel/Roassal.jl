@@ -10,7 +10,7 @@ export pos, extent, compute_encompassing_rectangle
 export pos_in_window
 export translate_to!, translate_topleft_to!, extent!, translate_by!
 export get_width, get_height
-export shapes_near
+export shapes_nearby
 
 export random_color
 
@@ -206,23 +206,6 @@ function is_intersecting(
              rect1[2] > rect2[2] + rect2[4])    # rect1 is below rect2
 end
 
-# Return shapes bear by `shape` within `radius`
-function shapes_near(shape::Shape, radius::Number=20)
-    c = shape.canvas
-    result = Shape[]
-    p = pos(shape)
-    for s in c.shapes
-        if s !== shape
-            p2 = pos(s)
-            dist = sqrt((p[1] - p2[1])^2 + (p[2] - p2[2])^2)
-            if dist <= radius
-                push!(result, s)
-            end
-        end
-    end
-    return result
-end
-
 # Return (x, y, w, h)
 function compute_encompassing_rectangle(shapes::Vector{Shape})
     isempty(shapes) && return (0, 0, 0, 0)
@@ -325,6 +308,25 @@ end
 get_shapes(c::RCanvas) = c.shapes
 get_nodes(c::RCanvas) = filter(s -> !(s isa RLine), get_shapes(c))
 get_edges(c::RCanvas) = filter(s -> s isa RLine, get_shapes(c))
+
+# Return shapes bear by `shape` within `radius`
+function shapes_nearby(shape::Shape, radius::Number=20)
+    return shapes_nearby(shape.canvas, shape, radius)
+end
+function shapes_nearby(canvas::RCanvas, shape::Shape, radius::Number=20)
+    result = Shape[]
+    p = pos(shape)
+    for s in canvas.shapes
+        if s !== shape
+            p2 = pos(s)
+            dist = sqrt((p[1] - p2[1])^2 + (p[2] - p2[2])^2)
+            if dist <= radius
+                push!(result, s)
+            end
+        end
+    end
+    return result
+end
 
 function get_shape(c::RCanvas, model::Any)
     for s in c.shapes

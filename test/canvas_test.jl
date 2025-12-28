@@ -232,15 +232,15 @@ end
     add!(c, s1)
     add!(c, s2)
     add!(c, s3)
-    @test isempty(shapes_near(s1, 20))
-    @test isempty(shapes_near(s2, 20))
-    @test isempty(shapes_near(s3, 20))
+    @test isempty(shapes_nearby(s1, 20))
+    @test isempty(shapes_nearby(s2, 20))
+    @test isempty(shapes_nearby(s3, 20))
 
-    @test shapes_near(s2, 50) == []
-    @test shapes_near(s1, 50) == []
-    @test shapes_near(s3, 50) == []
+    @test shapes_nearby(s2, 50) == []
+    @test shapes_nearby(s1, 50) == []
+    @test shapes_nearby(s3, 50) == []
 
-    @test shapes_near(s2, 60) == [s1]
-    @test shapes_near(s1, 60) == [s2]
-    @test shapes_near(s3, 60) == []
+    @test shapes_nearby(s2, 60) == [s1]
+    @test shapes_nearby(s1, 60) == [s2]
+    @test shapes_nearby(s3, 60) == []
 end
