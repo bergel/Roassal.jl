@@ -10,6 +10,7 @@ export pos, extent, compute_encompassing_rectangle
 export pos_in_window
 export translate_to!, translate_topleft_to!, extent!, translate_by!
 export get_width, get_height
+export shapes_near
 
 export random_color
 
@@ -92,8 +93,7 @@ get_width(s::BoundedShape) = extent(s)[1]
 get_height(s::BoundedShape) = extent(s)[2]
 
 # Return the position of the shape in the window. Top-left is (0,0)
-pos_in_window(s::Shape) = (s.x + s.canvas.offset_X + s.canvas.width/2, s.y + s.canvas.offset_Y + s.canvas.height/2)
-
+pos_in_window(s::Shape) = round.(Int, (s.x + s.canvas.offset_X + s.canvas.width/2, s.y + s.canvas.offset_Y + s.canvas.height/2))
 mutable struct RCircle <: BoundedShape
     color
     x
@@ -194,7 +194,7 @@ function is_intersecting(s1::BoundedShape, s2::BoundedShape)
     return is_intersecting(r1, r2)
 end
 
-# Each tupple is (x, y, w, h)
+# Each tuple is (x, y, w, h)
 function is_intersecting(
     rect1::Tuple{Number, Number, Number, Number},
     rect2::Tuple{Number, Number, Number, Number}
@@ -204,6 +204,23 @@ function is_intersecting(
              rect1[1] > rect2[1] + rect2[3] ||  # rect1 is right of rect2
              rect1[2] + rect1[4] < rect2[2] ||  # rect1 is above rect2
              rect1[2] > rect2[2] + rect2[4])    # rect1 is below rect2
+end
+
+# Return shapes bear by `shape` within `radius`
+function shapes_near(shape::Shape, radius::Number=20)
+    c = shape.canvas
+    result = Shape[]
+    p = pos(shape)
+    for s in c.shapes
+        if s !== shape
+            p2 = pos(s)
+            dist = sqrt((p[1] - p2[1])^2 + (p[2] - p2[2])^2)
+            if dist <= radius
+                push!(result, s)
+            end
+        end
+    end
+    return result
 end
 
 # Return (x, y, w, h)
@@ -449,7 +466,7 @@ function rshow(
 
     signal_connect(win, "key-release-event") do widget, event
         try
-            println("You released key ", event.keyval)
+            # println("You released key ", event.keyval)
             # offset = offsetFromScreenToCanvas(c)
             # shape_or_canvas_under_mouse = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
             trigger_callback(canvas, :keyRelease, event)
