@@ -13,8 +13,10 @@ using Dates: now
 # Modeling
 export Shape
 export pos, extent, compute_encompassing_rectangle
+export pos_in_window
 export translate_to!, translate_topleft_to!, extent!, translate_by!
 export get_width, get_height
+export shapes_nearby
 
 export random_color
 
@@ -34,6 +36,7 @@ export get_shape_at_position
 export offset_from_canvas_to_screen, offsetFromScreenToCanvas
 export get_shapes, get_nodes, get_edges
 export center!, refresh, get_shape, push_lines_back
+export visible_shapes
 
 export Callback
 export numberOfCallbacks, add_callback!, trigger_callback
@@ -95,6 +98,8 @@ extent(s::BoundedShape) = (s.width, s.height)
 get_width(s::BoundedShape) = extent(s)[1]
 get_height(s::BoundedShape) = extent(s)[2]
 
+# Return the position of the shape in the window. Top-left is (0,0)
+pos_in_window(s::Shape) = round.(Int, (s.x + s.canvas.offset_X + s.canvas.width/2, s.y + s.canvas.offset_Y + s.canvas.height/2))
 mutable struct RCircle <: BoundedShape
     color
     x
@@ -195,7 +200,7 @@ function is_intersecting(s1::BoundedShape, s2::BoundedShape)
     return is_intersecting(r1, r2)
 end
 
-# Each tupple is (x, y, w, h)
+# Each tuple is (x, y, w, h)
 function is_intersecting(
     rect1::Tuple{Number, Number, Number, Number},
     rect2::Tuple{Number, Number, Number, Number}
@@ -317,6 +322,25 @@ get_shapes(c::RCanvas) = Vector(c.shapes)
 get_nodes(c::RCanvas) = filter(s -> !(s isa RLine), get_shapes(c))
 get_edges(c::RCanvas) = filter(s -> s isa RLine, get_shapes(c))
 
+# Return shapes bear by `shape` within `radius`
+function shapes_nearby(shape::Shape, radius::Number=20)
+    return shapes_nearby(shape.canvas, shape, radius)
+end
+function shapes_nearby(canvas::RCanvas, shape::Shape, radius::Number=20)
+    result = Shape[]
+    p = pos(shape)
+    for s in canvas.shapes
+        if s !== shape
+            p2 = pos(s)
+            dist = sqrt((p[1] - p2[1])^2 + (p[2] - p2[2])^2)
+            if dist <= radius
+                push!(result, s)
+            end
+        end
+    end
+    return result
+end
+
 function get_shape(c::RCanvas, model::Any)
     for s in c.shapes
         if s.model == model
@@ -326,8 +350,19 @@ function get_shape(c::RCanvas, model::Any)
     return nothing
 end
 
+# Return (x, y, w, h)
 function compute_encompassing_rectangle(c::RCanvas)
-    return (-c.offset_X - c.width/2, -c.offset_Y - c.height/2, c.width/2, c.height/2)
+    return (
+            -c.offset_X - c.width/2,
+            -c.offset_Y - c.height/2,
+            c.width,
+            c.height)
+    # return (-c.offset_X - c.width/2, -c.offset_Y - c.height/2, c.width/2, c.height/2)
+end
+
+# Return the list of shapes visible in the canvas
+function visible_shapes(c::RCanvas)
+    return filter(s -> is_intersecting(c, s), c.shapes)
 end
 
 function is_intersecting(c::RCanvas, shape::Shape)
@@ -349,9 +384,11 @@ function redraw(canvas::RCanvas, c::GtkCanvas)
         h = height(c)
         w = width(c)
         ctx = getgc(c)
+        save(ctx)
         rectangle(ctx, 0, 0, w, h)
         set_source_rgb(ctx, 0.2, 0.2, 0.2)
         fill(ctx)
+        restore(ctx)
 
         rendererVisitor(canvas, c)
     end
@@ -401,8 +438,14 @@ function rshow(
     resize::Bool=true,
     max_window_size::Tuple{Number, Number}=(800, 600),
     min_window_size::Tuple{Number, Number}=(200, 200),
+    size::Tuple{Number, Number}=(0, 0),
 )
-    c = @GtkCanvas()
+    local c
+    if size != (0, 0)
+        c = @GtkCanvas(size[1], size[2])
+    else
+        c = @GtkCanvas()
+    end
     !isnothing(previous_win) && destroy(previous_win)
 
     # We keep a reference to allow for refresh and animations
@@ -413,13 +456,20 @@ function rshow(
     redraw(canvas, c)
 
     center && center!(canvas, resize)
-    if resize
+
+    if size == (0, 0) && resize
         es = compute_encompassing_rectangle(get_shapes(canvas))
         new_width = max(min(es[3] + 10, max_window_size[1]), min_window_size[1])
         new_height = max(min(es[4] + 10, max_window_size[2]), min_window_size[2])
         resize!(win, round(Int, new_width), round(Int, new_height))
         canvas.width = round(Int, new_width)
         canvas.height = round(Int, new_height)
+    end
+
+    if size != (0, 0)
+        canvas.width = size[1]
+        canvas.height = size[2]
+        resize!(win, size[1], size[2])
     end
 
     signal_connect(win, "size-allocate") do widget, allocation
@@ -429,23 +479,40 @@ function rshow(
         redraw(canvas, c)
     end
 
+    signal_connect(win, "key-release-event") do widget, event
+        try
+            # println("You released key ", event.keyval)
+            # offset = offsetFromScreenToCanvas(c)
+            # shape_or_canvas_under_mouse = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
+            trigger_callback(canvas, :keyRelease, event)
+        catch e
+            println("Error in key-released-event callback: $e")
+            @error "Something went wrong1" exception=(e, catch_backtrace())
+
+        end
+    end
+
     signal_connect(win, "key-press-event") do widget, event
         try
-        #println("You pressed key ", event.keyval)
-        step = 20
-        big_step = step * 5
-        event.keyval == 65361 && translate_by!(canvas, step, 0)
-        event.keyval == 65363 && translate_by!(canvas, -step, 0)
-        event.keyval == 65364 && translate_by!(canvas, 0, -step)
-        event.keyval == 65362 && translate_by!(canvas, 0, step)
+            # println("You pressed key ", event.keyval)
+            # offset = offsetFromScreenToCanvas(c)
+            # shape_or_canvas_under_mouse = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
+            trigger_callback(canvas, :keyPress, event)
+            # step = 20
+            # big_step = step * 5
+            # event.keyval == 65361 && translate_by!(canvas, step, 0)
+            # event.keyval == 65363 && translate_by!(canvas, -step, 0)
+            # event.keyval == 65364 && translate_by!(canvas, 0, -step)
+            # event.keyval == 65362 && translate_by!(canvas, 0, step)
 
-        event.keyval == 97 && translate_by!(canvas, big_step, 0)
-        event.keyval == 100 && translate_by!(canvas, -big_step, 0)
-        event.keyval == 119 && translate_by!(canvas, 0, -big_step)
-        event.keyval == 115 && translate_by!(canvas, 0, big_step)
-        redraw(canvas, c)
-                catch e
-            println("Error in mouse motion callback: $e")
+            # event.keyval == 97 && translate_by!(canvas, big_step, 0)
+            # event.keyval == 100 && translate_by!(canvas, -big_step, 0)
+            # event.keyval == 119 && translate_by!(canvas, 0, -big_step)
+            # event.keyval == 115 && translate_by!(canvas, 0, big_step)
+            redraw(canvas, c)
+        catch e
+            println("Error in key-press-event callback: $e")
+            @error "Something went wrong2" exception=(e, catch_backtrace())
         end
     end
 
@@ -554,6 +621,8 @@ function rendererVisitor(canvas::RCanvas, gtk::GtkCanvas=GtkCanvas())
     # o = offset_from_canvas_to_screen(gtk)
     # er_canvas = compute_encompassing_rectangle(canvas)
     for shape in canvas.shapes
+        # @info "Considering shape: $shape"
+
         # er = compute_encompassing_rectangle(shape)
         # er = (er[1] - o[1], er[2] - o[2], er[3], er[4])
         # er = (er[1] + o[1] + canvas.offset_X, er[2] + o[2] + canvas.offset_Y, er[3], er[4])
@@ -566,6 +635,7 @@ end
 
 function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
+    save(ctx)
     encompassingRectangle = compute_encompassing_rectangle(box)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
 
@@ -588,6 +658,7 @@ function rendererVisitor(box::RBox, gtk::GtkCanvas=GtkCanvas(), offset_x::Number
                 encompassingRectangle[4])
     set_color(ctx, box.color)
     fill(ctx)
+    restore(ctx)
     # println("DEBUG visiting box: $encompassingRectangle $offset_x $offset_y")
 end
 
@@ -602,6 +673,7 @@ function set_color(ctx, color)
         color == :white && set_source_rgb(ctx, 1.0, 1.0, 1.0)
         color == :gray && set_source_rgb(ctx, 0.5, 0.5, 0.5)
         color == :purple && set_source_rgb(ctx, 0.9, 0.0, 0.9)
+        color == :brown && set_source_rgb(ctx, 0.6, 0.3, 0.0)
     else
         set_source_rgb(ctx, color.r, color.g, color.b)
     end
@@ -609,6 +681,7 @@ end
 
 function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
+    save(ctx)
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
 
     # if encompassingRectangle[3] <= 0 || encompassingRectangle[4] <= 0
@@ -631,6 +704,7 @@ function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::
         2pi)
     set_color(ctx, circle.color)
     fill(ctx)
+    restore(ctx)
     # println("DEBUG visiting circle: $circle")
 
 end
@@ -649,7 +723,7 @@ end
 
 function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
-
+    save(ctx)
     set_color(ctx, line.color)
 
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
@@ -660,6 +734,7 @@ function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Numb
     set_line_width(ctx, 2.0)
     stroke(ctx)
 
+    restore(ctx)
     # println("DEBUG: $color $from_position $to_position")
 
 #=     fill(ctx)
@@ -710,8 +785,8 @@ function trigger_callback(shape_or_canvas_under_mouse, name::Symbol, event=nothi
     # Can be better written
     for c in shape_or_canvas_under_mouse.callbacks
         if (c.name == name)
-            #c.f(event, shape_or_canvas_under_mouse)
-            c.f()
+            c.f(event, shape_or_canvas_under_mouse)
+            # c.f()
         end
     end
 end

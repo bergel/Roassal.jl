@@ -2,8 +2,13 @@
 # Animations
 
 using Dates
+using Base.Threads
 
 export Animation, add!, oscillate!
+export add_key_callback!, add_key_canvas_controller!, add_arrowkey_controller!
+export center_on_shape!
+export add_key_up_callback!, add_key_down_callback!, add_key_left_callback!,
+    add_key_right_callback!
 
 mutable struct Animation
     start_time::DateTime
@@ -88,12 +93,12 @@ end =#
 
 highlighted_shapes = Dict{Shape,RColor}()
 function highlightable(shape::Shape)
-    function recordColor()
+    function recordColor(_, _)
         global highlighted_shapes[shape] = get_color(shape)
         println("Highlight: $(shape.model)")
         set_color!(shape, RColor_BLUE)
     end
-    function restoreColor()
+    function restoreColor(_, _)
         #println("mouse leave! $(haskey(highlighted_shapes, shape))\n")
         if(haskey(highlighted_shapes, shape))
             set_color!(shape, highlighted_shapes[shape])
@@ -132,3 +137,129 @@ end
 #     return shape
 # end
 # ------------------------------------
+
+
+function add_key_callback!(
+    shape_or_canvas::Union{Shape,RCanvas},
+    key_number::Int,
+    press_func::Function,
+    release_func::Function
+)
+    is_pressed = false
+    add_callback!(shape_or_canvas, Callback(:keyPress, (event, canvas) -> begin
+        if event.keyval == key_number && !is_pressed
+            is_pressed = true
+            press_func(event, canvas)
+        end
+    end))
+
+    add_callback!(shape_or_canvas, Callback(:keyRelease, (event, canvas) -> begin
+        if event.keyval == key_number
+            is_pressed = false
+            release_func(event, canvas)
+        end
+    end))
+end
+
+function add_key_canvas_controller!(canvas::RCanvas)
+    delta_x = Threads.Atomic{Int}(0)
+    delta_y = Threads.Atomic{Int}(0)
+    function _tmp(a)
+        translate_by!(canvas, delta_x[], delta_y[])
+    end
+    add!(canvas, Animation(_tmp, 100))
+
+    add_key_callback!(canvas, 65363,  # Right arrow
+        (event, canvas) -> begin delta_x[] = 1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65364,  # Down arrow
+        (event, canvas) -> begin delta_y[] = 1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65361,  # Left arrow
+        (event, canvas) -> begin delta_x[] = -1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65362,  # Up arrow
+        (event, canvas) -> begin delta_y[] = -1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+end
+
+function center_on_shape!(canvas::RCanvas, shape::Shape)
+    p = pos(shape)
+    translate_to!(canvas, -p[1], -p[2])
+end
+
+# NOT SURE ABOUT BELOW
+function add_arrowkey_controller!(
+    canvas::RCanvas,
+    callback::Function=(delta_x, delta_y)->nothing
+)
+    delta_x = Threads.Atomic{Int}(0)
+    delta_y = Threads.Atomic{Int}(0)
+    function _tmp(a)
+        if delta_x[] != 0 || delta_y[] != 0
+            callback(delta_x[], delta_y[])
+        end
+    end
+    # add!(canvas, Animation(_tmp, 1000))
+
+    add_key_callback!(canvas, 65363,  # Right arrow
+        (event, canvas) -> begin delta_x[] = 1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65364,  # Down arrow
+        (event, canvas) -> begin delta_y[] = 1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65361,  # Left arrow
+        (event, canvas) -> begin delta_x[] = -1 end,
+        (event, canvas) -> begin delta_x[] = 0 end
+    )
+
+    add_key_callback!(canvas, 65362,  # Up arrow
+        (event, canvas) -> begin delta_y[] = -1 end,
+        (event, canvas) -> begin delta_y[] = 0 end
+    )
+end
+
+function add_key_up_callback!(
+    canvas::RCanvas,
+    callback_pressed::Function,
+    callback_released::Function
+)
+    add_key_callback!(canvas, 65362, callback_pressed, callback_released)
+end
+
+
+function add_key_down_callback!(
+    canvas::RCanvas,
+    callback_pressed::Function,
+    callback_released::Function
+)
+    add_key_callback!(canvas, 65364, callback_pressed, callback_released)
+end
+
+function add_key_left_callback!(
+    canvas::RCanvas,
+    callback_pressed::Function,
+    callback_released::Function
+)
+    add_key_callback!(canvas, 65361, callback_pressed, callback_released)
+end
+
+
+function add_key_right_callback!(
+    canvas::RCanvas,
+    callback_pressed::Function,
+    callback_released::Function
+)
+    add_key_callback!(canvas, 65363, callback_pressed, callback_released)
+end
