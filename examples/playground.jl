@@ -305,7 +305,39 @@ function text_size_example()
     end
     rshow(c)
 end
-text_size_example()
+
+function example_key_events2()
+    c = RCanvas()
+    box = RBox(; color=RColor(0.5, 0.5, 0.5))
+    add!(c, box)
+
+    add_callback!(c, Callback(:keyPress, (event, canvas) -> println("Key pressed in canvas: ", event.keyval)))
+    add_callback!(c, Callback(:keyRelease, (event, canvas) -> println("Key released in canvas: ", event.keyval)))
+
+    rshow(c; center=true, resize=true)
+end
+
+function example_key_events()
+    c = RCanvas()
+    box = RBox(; color=RColor(0.5, 0.5, 0.5))
+    add!(c, box)
+
+    add_key_callback!(c, 113, (event, canvas) -> println("*", event.keyval), (event, canvas) -> println("**", event.keyval))
+
+    rshow(c; center=true, resize=true)
+end
+
+function example_key_events3()
+    c = RCanvas()
+    box = RBox(; color=RColor(0.5, 0.5, 0.5))
+    add!(c, box)
+
+    add_key_canvas_controller!(c)
+
+    rshow(c; center=true, resize=true)
+end
+
+#example_key_events3()
 
 # example11()
 displaying_graph()
