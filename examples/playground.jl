@@ -276,6 +276,36 @@ function oscillate2()
     rshow(c)
 end
 
+function text_example()
+    c = RCanvas()
+    text = RText("Hello Roassal!")
+    translate_to!(text, 100, 100)
+    add!(c, text)
+    rshow(c)
+end
+
+function oscillate3()
+    c = RCanvas()
+    add!(c, translate_to!(RText("Hello Roassal!"),  0,  0))
+    add!(c, translate_to!(RText("Bonjour!"), 0,  50))
+    texts = get_shapes(c)
+    foreach(c -> oscillate!(c; duration=5.0, vertical=true, horizontal=true), texts)
+
+    add!(c, RLine(texts[1], texts[2]))
+
+    rshow(c)
+end
+
+function text_size_example()
+    c = RCanvas()
+    for size in 10:10:100
+        text = RText("Size $size"; font_size=size, color=RColor_RED)
+        translate_to!(text, (0, size*2))
+        add!(c, text)
+    end
+    rshow(c)
+end
+
 function example_key_events2()
     c = RCanvas()
     box = RBox(; color=RColor(0.5, 0.5, 0.5))
