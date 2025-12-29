@@ -223,3 +223,24 @@ end
     @test !(s2 in visible)
     @test !(s3 in visible)
 end
+
+@testset "Nearby shapes" begin
+    c = RCanvas()
+    s1 = RBox(; x=10, y=10, width=20, height=20, color=RColor(1.0, 0, 0))
+    s2 = RBox(; x=50, y=50, width=20, height=20, color=RColor(0, 1.0, 0))
+    s3 = RBox(; x=190, y=190, width=20, height=20, color=RColor(0, 0, 1.0))
+    add!(c, s1)
+    add!(c, s2)
+    add!(c, s3)
+    @test isempty(shapes_nearby(s1, 20))
+    @test isempty(shapes_nearby(s2, 20))
+    @test isempty(shapes_nearby(s3, 20))
+
+    @test shapes_nearby(s2, 50) == []
+    @test shapes_nearby(s1, 50) == []
+    @test shapes_nearby(s3, 50) == []
+
+    @test shapes_nearby(s2, 60) == [s1]
+    @test shapes_nearby(s1, 60) == [s2]
+    @test shapes_nearby(s3, 60) == []
+end

@@ -10,6 +10,7 @@ export pos, extent, compute_encompassing_rectangle
 export pos_in_window
 export translate_to!, translate_topleft_to!, extent!, translate_by!
 export get_width, get_height
+export shapes_nearby
 
 export random_color
 
@@ -92,8 +93,7 @@ get_width(s::BoundedShape) = extent(s)[1]
 get_height(s::BoundedShape) = extent(s)[2]
 
 # Return the position of the shape in the window. Top-left is (0,0)
-pos_in_window(s::Shape) = (s.x + s.canvas.offset_X + s.canvas.width/2, s.y + s.canvas.offset_Y + s.canvas.height/2)
-
+pos_in_window(s::Shape) = round.(Int, (s.x + s.canvas.offset_X + s.canvas.width/2, s.y + s.canvas.offset_Y + s.canvas.height/2))
 mutable struct RCircle <: BoundedShape
     color
     x
@@ -194,7 +194,7 @@ function is_intersecting(s1::BoundedShape, s2::BoundedShape)
     return is_intersecting(r1, r2)
 end
 
-# Each tupple is (x, y, w, h)
+# Each tuple is (x, y, w, h)
 function is_intersecting(
     rect1::Tuple{Number, Number, Number, Number},
     rect2::Tuple{Number, Number, Number, Number}
@@ -308,6 +308,25 @@ end
 get_shapes(c::RCanvas) = c.shapes
 get_nodes(c::RCanvas) = filter(s -> !(s isa RLine), get_shapes(c))
 get_edges(c::RCanvas) = filter(s -> s isa RLine, get_shapes(c))
+
+# Return shapes bear by `shape` within `radius`
+function shapes_nearby(shape::Shape, radius::Number=20)
+    return shapes_nearby(shape.canvas, shape, radius)
+end
+function shapes_nearby(canvas::RCanvas, shape::Shape, radius::Number=20)
+    result = Shape[]
+    p = pos(shape)
+    for s in canvas.shapes
+        if s !== shape
+            p2 = pos(s)
+            dist = sqrt((p[1] - p2[1])^2 + (p[2] - p2[2])^2)
+            if dist <= radius
+                push!(result, s)
+            end
+        end
+    end
+    return result
+end
 
 function get_shape(c::RCanvas, model::Any)
     for s in c.shapes
@@ -449,7 +468,7 @@ function rshow(
 
     signal_connect(win, "key-release-event") do widget, event
         try
-            println("You released key ", event.keyval)
+            # println("You released key ", event.keyval)
             # offset = offsetFromScreenToCanvas(c)
             # shape_or_canvas_under_mouse = get_shape_at_position(canvas, event.x + offset[1], event.y + offset[2])
             trigger_callback(canvas, :keyRelease, event)
