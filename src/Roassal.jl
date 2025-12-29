@@ -3,7 +3,7 @@ module Roassal
 # ------------------------------------
 # Graphic
 using Gtk, Graphics
-using Cairo: show_text, move_to, stroke
+using Cairo: show_text, move_to, stroke, set_font_size
 
 # ------------------------------------
 # Utility
@@ -255,10 +255,11 @@ mutable struct RText <: BoundedShape
     model
 
     value::String
+    font_size::Int64
 end
 
-function RText(value::String; color=RColor_WHITE)
-    return RText(color, 0, 0, 0, 0, [], nothing, [], [], nothing, value)
+function RText(value::String; color=RColor_WHITE, font_size::Int64=12)
+    return RText(color, 0, 0, 0, 0, [], nothing, [], [], nothing, value, font_size)
 end
 
 # ------------------------------------
@@ -642,7 +643,7 @@ function rendererVisitor(text::RText, gtk::GtkCanvas=GtkCanvas(), offset_x::Numb
         text.x + _offsetFromCameraToScreen[1] + offset_x,
         text.y + _offsetFromCameraToScreen[2] + offset_y)
     set_color(ctx, text.color)
-    # set_font_size(ctx, 90.0);
+    set_font_size(ctx, text.font_size)
     show_text(ctx, text.value)
     stroke(ctx);
 end

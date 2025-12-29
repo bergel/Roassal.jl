@@ -296,6 +296,17 @@ function oscillate3()
     rshow(c)
 end
 
+function text_size_example()
+    c = RCanvas()
+    for size in 10:10:100
+        text = RText("Size $size"; font_size=size, color=RColor_RED)
+        translate_to!(text, (0, size*2))
+        add!(c, text)
+    end
+    rshow(c)
+end
+text_size_example()
+
 # example11()
 displaying_graph()
 
