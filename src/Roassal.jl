@@ -121,8 +121,11 @@ mutable struct RImage <: BoundedShape
     scale_y::Float64
 end
 
-function RImage(filename::String; x=0, y=0, model=nothing, width=0, height=0, image_cache=nothing)
-    isnothing(image_cache) && (image_cache = read_from_png(filename))
+function RImage(filename::String; x=0, y=0, model=nothing, width=0, height=0)
+    return RImage(read_from_png(filename); x=0, y=0, model=nothing, width=0, height=0, filename=filename)
+end
+
+function RImage(image_cache; x=0, y=0, model=nothing, width=0, height=0, filename="")
     real_width = round(Int, Cairo.width(image_cache))
     real_height = round(Int, Cairo.height(image_cache))
 
@@ -156,29 +159,6 @@ function RImage(filename::String; x=0, y=0, model=nothing, width=0, height=0, im
         scale_y
     )
 end
-
-# function RImage(filename::String; x=0, y=0, model=nothing, scale_x=0, scale_y=0, image_cache=nothing)
-#     isnothing(image_cache) && (image_cache = read_from_png(filename))
-#     width = round(Int, Cairo.width(image_cache))
-#     height = round(Int, Cairo.height(image_cache))
-#     scale_x == 0 && (scale_x = width)
-#     scale_y == 0 && (scale_y = height)
-#     return RImage(
-#         x,
-#         y,
-#         width,
-#         height,
-#         [],
-#         nothing,
-#         [],
-#         [],
-#         model,
-#         image_cache,
-#         filename,
-#         scale_x,
-#         scale_y
-#     )
-# end
 
 mutable struct RCircle <: BoundedShape
     color
