@@ -3,7 +3,7 @@ module Roassal
 # ------------------------------------
 # Graphic
 using Gtk, Graphics
-using Cairo: show_text, move_to, stroke, set_font_size
+using Cairo: Cairo, show_text, move_to, stroke, set_font_size, read_from_png, set_source_surface
 
 # ------------------------------------
 # Utility
@@ -26,6 +26,8 @@ export RCircle, set_size!, bottom_center, top_center, is_intersecting
 export RText
 
 export RLine
+
+export RImage
 
 export RColor, RColor_BLUE, RColor_GREEN, RColor_RED
 
@@ -100,6 +102,84 @@ get_height(s::BoundedShape) = extent(s)[2]
 
 # Return the position of the shape in the window. Top-left is (0,0)
 pos_in_window(s::Shape) = round.(Int, (s.x + s.canvas.offset_X + s.canvas.width/2, s.y + s.canvas.offset_Y + s.canvas.height/2))
+
+mutable struct RImage <: BoundedShape
+    # color
+    x
+    y
+    width
+    height
+    callbacks
+    canvas
+    outgoing_edges
+    incoming_edges
+    model
+
+    image_cache
+    filename::String
+    scale_x::Float64
+    scale_y::Float64
+end
+
+function RImage(filename::String; x=0, y=0, model=nothing, width=0, height=0, image_cache=nothing)
+    isnothing(image_cache) && (image_cache = read_from_png(filename))
+    real_width = round(Int, Cairo.width(image_cache))
+    real_height = round(Int, Cairo.height(image_cache))
+
+    if width == 0
+        scale_x = 1.0
+        width = real_width
+    else
+        scale_x = width / real_width
+    end
+
+    if height == 0
+        scale_y = 1.0
+        height = real_height
+    else
+        scale_y = height / real_height
+    end
+
+    return RImage(
+        x,
+        y,
+        width,
+        height,
+        [],
+        nothing,
+        [],
+        [],
+        model,
+        image_cache,
+        filename,
+        scale_x,
+        scale_y
+    )
+end
+
+# function RImage(filename::String; x=0, y=0, model=nothing, scale_x=0, scale_y=0, image_cache=nothing)
+#     isnothing(image_cache) && (image_cache = read_from_png(filename))
+#     width = round(Int, Cairo.width(image_cache))
+#     height = round(Int, Cairo.height(image_cache))
+#     scale_x == 0 && (scale_x = width)
+#     scale_y == 0 && (scale_y = height)
+#     return RImage(
+#         x,
+#         y,
+#         width,
+#         height,
+#         [],
+#         nothing,
+#         [],
+#         [],
+#         model,
+#         image_cache,
+#         filename,
+#         scale_x,
+#         scale_y
+#     )
+# end
+
 mutable struct RCircle <: BoundedShape
     color
     x
@@ -301,9 +381,13 @@ mutable struct RCanvas
     window_title::String
     width::Int  # Given by the size of the window
     height::Int # Given by the size of the window
+    background_color::Union{RColor, Symbol}
 end
 RCanvas() = RCanvas("Roassal")
-RCanvas(window_title::String) = RCanvas([], [], RBox(), 0, 0, nothing, [], window_title, 0, 0)
+function RCanvas(window_title::String; background_color=RColor(0.2, 0.2, 0.2))
+    return RCanvas([], [], RBox(), 0, 0, nothing, [], window_title, 0, 0,
+        background_color)
+end
 
 number_of_shapes(c::RCanvas) = length(c.shapes)
 
@@ -387,7 +471,8 @@ function redraw(canvas::RCanvas, c::GtkCanvas)
         ctx = getgc(c)
         save(ctx)
         rectangle(ctx, 0, 0, w, h)
-        set_source_rgb(ctx, 0.2, 0.2, 0.2)
+        set_color(ctx, canvas.background_color)
+
         fill(ctx)
         restore(ctx)
 
@@ -675,6 +760,7 @@ function set_color(ctx, color)
         color == :gray && set_source_rgb(ctx, 0.5, 0.5, 0.5)
         color == :purple && set_source_rgb(ctx, 0.9, 0.0, 0.9)
         color == :brown && set_source_rgb(ctx, 0.6, 0.3, 0.0)
+        color == :ciel && set_source_rgb(ctx, 0.7, 0.9, 0.8)
     else
         set_source_rgb(ctx, color.r, color.g, color.b)
     end
@@ -706,12 +792,12 @@ function rendererVisitor(circle::RCircle, gtk::GtkCanvas=GtkCanvas(), offset_x::
     set_color(ctx, circle.color)
     fill(ctx)
     restore(ctx)
-    # println("DEBUG visiting circle: $circle")
-
 end
 
 function rendererVisitor(text::RText, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
     ctx = getgc(gtk)
+    save(ctx)
+
     _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
     move_to(ctx,
         text.x + _offsetFromCameraToScreen[1] + offset_x,
@@ -720,6 +806,25 @@ function rendererVisitor(text::RText, gtk::GtkCanvas=GtkCanvas(), offset_x::Numb
     set_font_size(ctx, text.font_size)
     show_text(ctx, text.value)
     stroke(ctx);
+
+    restore(ctx)
+end
+
+function rendererVisitor(image::RImage, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)
+    ctx = getgc(gtk)
+    save(ctx)
+    _offsetFromCameraToScreen = offset_from_canvas_to_screen(gtk)
+
+    dx = image.x + _offsetFromCameraToScreen[1] + offset_x
+    dy = image.y + _offsetFromCameraToScreen[2] + offset_y
+
+    translate(ctx, dx + -0.5*image.width, dy + -0.5*image.height);
+    scale(ctx, image.scale_x, image.scale_y);
+
+    set_source_surface(ctx, image.image_cache, 0, 0)
+    paint(ctx)
+    restore(ctx)
+
 end
 
 function rendererVisitor(line::RLine, gtk::GtkCanvas=GtkCanvas(), offset_x::Number=0, offset_y::Number=0)

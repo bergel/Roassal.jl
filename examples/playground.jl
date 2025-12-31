@@ -1,5 +1,6 @@
 using Roassal
 using Random
+using Cairo: Cairo
 
 function example01()
     canvas = RCanvas()
@@ -336,11 +337,35 @@ function example_key_events3()
 
     rshow(c; center=true, resize=true)
 end
-
 #example_key_events3()
 
-# example11()
-displaying_graph()
+function image_example01()
+    c = RCanvas()
+    img = RImage("examples/Montain.png")
+    translate_to!(img, 100, 100)
+    add!(c, img)
+    rshow(c)
+end
+
+function image_example01()
+    c = RCanvas()
+    img = RImage("examples/Montain.png"; width = 40, height = 30)
+    translate_to!(img, 0, 0)
+    add!(c, img)
+    # add!(c, RBox(; x=0, y=0, width=40, height=30, color=RColor(1.0, 0, 0)))
+    rshow(c)
+end
+
+function image_example03()
+    raw_image = Cairo.read_from_png("examples/Montain.png")
+    c = RCanvas()
+    for scale in 1.0:-0.1:0.1
+        img = RImage("examples/Montain.png"; width=scale*800, height=scale*600, image_cache=raw_image)
+        translate_to!(img, scale*100, scale*100)
+        add!(c, img)
+    end
+    rshow(c)
+end
 
 #= print("Press Enter to exit")
 readline()
