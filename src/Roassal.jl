@@ -381,9 +381,13 @@ mutable struct RCanvas
     window_title::String
     width::Int  # Given by the size of the window
     height::Int # Given by the size of the window
+    background_color::Union{RColor, Symbol}
 end
 RCanvas() = RCanvas("Roassal")
-RCanvas(window_title::String) = RCanvas([], [], RBox(), 0, 0, nothing, [], window_title, 0, 0)
+function RCanvas(window_title::String; background_color=RColor(0.2, 0.2, 0.2))
+    return RCanvas([], [], RBox(), 0, 0, nothing, [], window_title, 0, 0,
+        background_color)
+end
 
 number_of_shapes(c::RCanvas) = length(c.shapes)
 
@@ -467,7 +471,8 @@ function redraw(canvas::RCanvas, c::GtkCanvas)
         ctx = getgc(c)
         save(ctx)
         rectangle(ctx, 0, 0, w, h)
-        set_source_rgb(ctx, 0.2, 0.2, 0.2)
+        set_color(ctx, canvas.background_color)
+
         fill(ctx)
         restore(ctx)
 
@@ -755,6 +760,7 @@ function set_color(ctx, color)
         color == :gray && set_source_rgb(ctx, 0.5, 0.5, 0.5)
         color == :purple && set_source_rgb(ctx, 0.9, 0.0, 0.9)
         color == :brown && set_source_rgb(ctx, 0.6, 0.3, 0.0)
+        color == :ciel && set_source_rgb(ctx, 0.7, 0.9, 0.8)
     else
         set_source_rgb(ctx, color.r, color.g, color.b)
     end
@@ -811,15 +817,9 @@ function rendererVisitor(image::RImage, gtk::GtkCanvas=GtkCanvas(), offset_x::Nu
 
     dx = image.x + _offsetFromCameraToScreen[1] + offset_x
     dy = image.y + _offsetFromCameraToScreen[2] + offset_y
-    # move_to(ctx,
-    #     image.x + _offsetFromCameraToScreen[1] + offset_x,
-    #     image.y + _offsetFromCameraToScreen[2] + offset_y)
-    # scale(ctx, image.scale_x/image.width, image.scale_y/image.height);
-    translate(ctx, dx + -0.5*image.width, dy + -0.5*image.height);
-    # scale(ctx, image.scale_x/image.width, image.scale_y/image.height);
-    scale(ctx, image.scale_x, image.scale_y);
 
-    # translate(ctx, dx , dy );
+    translate(ctx, dx + -0.5*image.width, dy + -0.5*image.height);
+    scale(ctx, image.scale_x, image.scale_y);
 
     set_source_surface(ctx, image.image_cache, 0, 0)
     paint(ctx)
