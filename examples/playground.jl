@@ -367,6 +367,28 @@ function image_example03()
     rshow(c)
 end
 
+function tree_layout_example01()
+    c = RCanvas()
+    box1 = RBox(; color=RColor(1.0, 0, 0), model=1)
+    box2 = RBox(; color=RColor(0, 1.0, 0), model=2)
+    box3 = RBox(; color=RColor(0, 0, 1.0), model=3)
+    box4 = RBox(; color=RColor(1.0, 1.0, 0), model=4)
+    box5 = RBox(; color=RColor(0, 1.0, 1.0), model=5)
+    add!(c, box1)
+    add!(c, box2)
+    add!(c, box3)
+    add!(c, box4)
+    add!(c, box5)
+
+    add!(c, RLine(box1, box2))
+    add!(c, RLine(box1, box3))
+    add!(c, RLine(box2, box4))
+    add!(c, RLine(box2, box5))
+
+    apply(TreeLayout(), c)
+    rshow(c)
+end
+
 #= print("Press Enter to exit")
 readline()
  =#

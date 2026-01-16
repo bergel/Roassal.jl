@@ -1,6 +1,7 @@
 export Layout
 export FlowLayout, ForceBasedLayout, HorizontalLineLayout, GridLayout, VerticalLineLayout
 export apply
+export TreeLayout
 
 abstract type Layout end
 
@@ -225,4 +226,90 @@ function apply(l::ForceBasedLayout, shapes::Vector{BoundedShape}, lines::Vector{
         _step(l, shapes, lines)
     end
     _after_apply(l, shapes)
+end
+# -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+struct TreeLayout <: Layout
+
+end
+
+struct TreeNode{T}
+    value::T
+    children::Vector{TreeNode{T}}
+    parents::Vector{TreeNode{T}}
+end
+TreeNode{T}(value::T) where T = TreeNode(value, TreeNode{T}[], TreeNode{T}[])
+
+function subtree_width(node::TreeNode)
+    isempty(node.children) && return 1
+    sum(subtree_width(c) for c in node.children)
+end
+
+function layout_tree(
+    node::TreeNode,
+    x::Float64,
+    y::Float64,
+    dx::Float64 = 1.0,
+    dy::Float64 = 1.0,
+    positions = Dict{TreeNode, Tuple{Float64, Float64}}()
+)
+    positions[node] = (x, y)
+
+    if isempty(node.children)
+        return positions
+    end
+
+    total_width = sum(subtree_width(c) for c in node.children)
+    start_x = x - dx * total_width / 2
+
+    current_x = start_x
+    for child in node.children
+        w = subtree_width(child)
+        child_x = current_x + dx * w / 2
+        layout_tree(child, child_x, y - dy, dx, dy, positions)
+        current_x += dx * w
+    end
+
+    return positions
+end
+
+# Simplified version of Reingold–Tilford tidy tree layout.
+function apply(l::TreeLayout, shapes::Vector{BoundedShape})
+    # Build tree structure from shapes
+    shape_to_tree_nodes = Dict{BoundedShape, TreeNode{BoundedShape}}()
+    for s in shapes
+        haskey(shape_to_tree_nodes, s) && continue
+        node = TreeNode{BoundedShape}(s)
+        shape_to_tree_nodes[s] = node
+        for line in s.outgoing_edges
+            isdefined(Main, :Infiltrator) && Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+            child_shape = line.to
+            child_shape in shapes || continue
+            haskey(shape_to_tree_nodes, child_shape) && continue
+            child_node = TreeNode{BoundedShape}(child_shape)
+            push!(node.children, child_node)
+            push!(child_node.parents, node)
+            shape_to_tree_nodes[child_shape] = child_node
+        end
+    end
+
+    root_nodes = TreeNode{BoundedShape}[]
+    for node in values(shape_to_tree_nodes)
+        isempty(node.parents) && push!(root_nodes, node)
+    end
+isdefined(Main, :Infiltrator) && Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+
+    if isempty(root_nodes)
+        @error "No root node found for tree layout"
+        return
+    end
+
+    positions = layout_tree(root_nodes[1], 0.0, 0.0, 30.0, 30.0)
+
+    for (node, (x, y)) in positions
+        translate_to!(node.value, (x, y))
+    end
+isdefined(Main, :Infiltrator) && Main.infiltrate(@__MODULE__, Base.@locals, @__FILE__, @__LINE__)
+
+    # error("Not implemented yet")
 end
